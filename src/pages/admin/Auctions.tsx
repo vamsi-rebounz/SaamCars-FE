@@ -1,125 +1,92 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getAuctionPurchases } from '../../services/auction';
+import AuctionPurchaseForm from '../../components/auction/AuctionPurchaseForm';
+import AlertState from '../../components/ErrorState';
 import { 
-  Gavel, 
-  Plus, 
   Search, 
   Filter, 
   ChevronDown, 
-  ChevronUp,
-  Edit,
-  Trash2,
+  ChevronUp, 
+  Plus, 
+  Car,
   DollarSign,
-  TrendingUp
+  Calendar,
+  Tag,
+  TrendingUp,
+  X
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-const Auctions: React.FC = () => {
+interface AuctionPurchase {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  vin: string;
+  status: string;
+  purchase_date: string;
+  purchase_price: number;
+  list_price: number;
+  images?: string[];
+}
+
+interface Pagination {
+  current_page: number;
+  total_pages: number;
+  total_items: number;
+  items_per_page: number;
+  has_next: boolean;
+  has_previous: boolean;
+}
+
+const AuctionsPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [showModal, setShowModal] = useState(false);
+  const [selectedAuction, setSelectedAuction] = useState<AuctionPurchase | null>(null);
+  const [auctions, setAuctions] = useState<AuctionPurchase[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState('purchaseDate');
+  const [sortField, setSortField] = useState('purchase_date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedAuction, setSelectedAuction] = useState<any | null>(null);
-  
-  // Mock data for auction purchases
-  const auctions = [
-    {
-      id: '1',
-      vehicle: '2020 Toyota Camry',
-      vin: '4T1BF1FK5LU123456',
-      purchaseDate: '2023-09-15',
-      auctionHouse: 'Auto Auction Inc.',
-      purchasePrice: 18500,
-      transportCost: 350,
-      repairCost: 1200,
-      totalInvestment: 20050,
-      listPrice: 22500,
-      soldPrice: 22000,
-      status: 'Sold',
-      profit: 1950,
-      notes: 'Minor body damage repaired. New tires installed.',
-    },
-    {
-      id: '2',
-      vehicle: '2021 Honda CR-V',
-      vin: '7FARW2H52ME123456',
-      purchaseDate: '2023-09-28',
-      auctionHouse: 'City Auto Auction',
-      purchasePrice: 24000,
-      transportCost: 400,
-      repairCost: 800,
-      totalInvestment: 25200,
-      listPrice: 28900,
-      soldPrice: null,
-      status: 'Listed',
-      profit: 3700,
-      notes: 'Excellent condition. Only needed minor detailing.',
-    },
-    {
-      id: '3',
-      vehicle: '2019 Ford F-150',
-      vin: '1FTEW1EP3KFA12345',
-      purchaseDate: '2023-08-20',
-      auctionHouse: 'Truck Auction Co.',
-      purchasePrice: 26000,
-      transportCost: 500,
-      repairCost: 2200,
-      totalInvestment: 28700,
-      listPrice: 32000,
-      soldPrice: 31500,
-      status: 'Sold',
-      profit: 2800,
-      notes: 'Needed new brakes and exhaust system repair.',
-    },
-    {
-      id: '4',
-      vehicle: '2022 BMW 3 Series',
-      vin: 'WBA5R7C54LFH12345',
-      purchaseDate: '2023-10-01',
-      auctionHouse: 'Luxury Auto Auction',
-      purchasePrice: 36000,
-      transportCost: 450,
-      repairCost: 1500,
-      totalInvestment: 37950,
-      listPrice: 42500,
-      soldPrice: null,
-      status: 'In Preparation',
-      profit: 4550,
-      notes: 'Minor interior repairs needed. Waiting for parts.',
-    },
-  ];
-  
-  // Filter auctions based on search term and filters
-  const filteredAuctions = auctions.filter(auction => {
-    const searchString = `${auction.vehicle} ${auction.vin} ${auction.auctionHouse}`.toLowerCase();
-    const matchesSearch = searchString.includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || auction.status.toLowerCase() === filterStatus.toLowerCase();
-    
-    return matchesSearch && matchesStatus;
-  });
-  
-  // Sort auctions
-  const sortedAuctions = [...filteredAuctions].sort((a, b) => {
-    let aValue: any = a[sortField as keyof typeof a];
-    let bValue: any = b[sortField as keyof typeof b];
-    
-    // Handle date strings
-    if (sortField === 'purchaseDate' || sortField === 'soldDate') {
-      aValue = new Date(aValue || '1970-01-01').getTime();
-      bValue = new Date(bValue || '1970-01-01').getTime();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [filterStatus, setFilterStatus] = useState('');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const fetchAuctions = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const filters = {
+        search: searchTerm,
+        sort_by: sortField,
+        sort_order: sortDirection,
+        page: currentPage,
+        limit: itemsPerPage,
+        ...(filterStatus && { status: filterStatus }),
+      };
+      const response = await getAuctionPurchases(filters);
+      console.log('Auctions API response:', response);
+      if (response.success && response.purchases) {
+        setAuctions(response.purchases);
+        console.log('Setting pagination:', response.pagination);
+        setPagination(response.pagination);
+      } else {
+        setError(response.error || 'Failed to fetch auctions');
+      }
+    } catch (err) {
+      setError('An error occurred while fetching auctions');
+    } finally {
+      setLoading(false);
     }
-    
-    // Handle numeric values
-    if (['purchasePrice', 'totalInvestment', 'listPrice', 'soldPrice', 'profit'].includes(sortField)) {
-      aValue = parseFloat(aValue?.toString() || '0');
-      bValue = parseFloat(bValue?.toString() || '0');
-    }
-    
-    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-    return 0;
-  });
-  
+  };
+
+  useEffect(() => {
+    fetchAuctions();
+  }, [searchTerm, sortField, sortDirection, currentPage, itemsPerPage, filterStatus]);
+
   const handleSort = (field: string) => {
     if (field === sortField) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -127,285 +94,456 @@ const Auctions: React.FC = () => {
       setSortField(field);
       setSortDirection('asc');
     }
+    setCurrentPage(1);
   };
-  
-  const handleViewAuction = (auction: any) => {
-    setSelectedAuction(auction);
-    setShowDetailModal(true);
+
+  const handleFormSuccess = () => {
+    setShowModal(false);
+    setSelectedAuction(null);
+    setSuccessMessage('Auction purchase saved successfully!');
+    fetchAuctions();
+    setTimeout(() => setSuccessMessage(null), 3000);
   };
-  
-  const calculateTotalInvestment = (purchase: number, transport: number, repair: number) => {
-    return purchase + transport + repair;
+
+  const handleRowClick = (auctionId: string) => {
+    navigate(`/admin/auctions/${auctionId}`);
   };
-  
-  const calculateProfit = (soldPrice: number | null, totalInvestment: number) => {
-    return soldPrice ? soldPrice - totalInvestment : 0;
+
+  const handlePageChange = (page: number) => {
+    if (pagination && page >= 1 && page <= pagination.total_pages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1);
+  };
+
+  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFilterStatus(e.target.value);
+    setCurrentPage(1);
+  };
+
+
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'available': return 'bg-green-100 text-green-800 border-green-200';
+      case 'sold': return 'bg-red-100 text-red-800 border-red-200';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'reserved': return 'bg-blue-100 text-blue-800 border-blue-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
   };
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
-      <div className="sm:flex sm:items-center sm:justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Auction to Sale Tracker</h1>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="mt-3 sm:mt-0 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Auction Purchase
-        </button>
-      </div>
-      
-      {/* Filters and Search */}
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-          <div className="w-full md:w-1/3">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
+    <div className="min-h-screen bg-gray-50">
+      {/* Alert Messages */}
+      <AlertState
+        success={successMessage}
+        error={error}
+        variant="server"
+        onClose={() => {
+          setSuccessMessage(null);
+          setError(null);
+        }}
+      />
+
+      <div className="container mx-auto px-4 py-8">
+        {/* Header Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div className="mb-4 lg:mb-0">
+              <div className="flex items-center">
+                <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl mr-4">
+                  <TrendingUp className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Auction Purchases</h1>
+                  <p className="text-gray-600 mt-1">Manage and track your auction vehicle purchases</p>
+                </div>
               </div>
-              <input
-                type="text"
-                placeholder="Search vehicles..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            </div>
+            <button
+              onClick={() => {
+                setSelectedAuction(null);
+                setShowModal(true);
+              }}
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Add New Auction
+            </button>
+          </div>
+        </div>
+
+
+
+        {/* Filters and Search */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+            <div className="flex-1 max-w-md">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search vehicles by make, model, year, or VIN..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center">
+                <Filter className="h-5 w-5 text-gray-400 mr-3" />
+                <select
+                  value={filterStatus}
+                  onChange={handleFilterChange}
+                  className="block w-full pl-4 pr-10 py-3 text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                >
+                  <option value="">All Status</option>
+                  <option value="available">Available</option>
+                  <option value="sold">Sold</option>
+                  <option value="pending">Pending</option>
+                  <option value="reserved">Reserved</option>
+                </select>
+              </div>
+
+              <div>
+                <select
+                  value={itemsPerPage}
+                  onChange={handleItemsPerPageChange}
+                  className="block w-full pl-4 pr-10 py-3 text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                >
+                  <option value="5">5 per page</option>
+                  <option value="10">10 per page</option>
+                  <option value="25">25 per page</option>
+                  <option value="50">50 per page</option>
+                  <option value="100">100 per page</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal */}
+        {showModal && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+            <div className="bg-white shadow-xl rounded-xl max-w-7xl w-full max-h-[95vh] overflow-y-auto">
+              <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {selectedAuction ? 'Edit Auction Purchase' : 'Add New Auction Purchase'}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowModal(false);
+                    setSelectedAuction(null);
+                  }}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              <AuctionPurchaseForm
+                initialData={selectedAuction}
+                onSuccess={handleFormSuccess}
+                isEditing={!!selectedAuction}
               />
             </div>
           </div>
-          
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center">
-              <Filter className="h-5 w-5 text-gray-400 mr-2" />
-              <select 
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-              >
-                <option value="all">All Statuses</option>
-                <option value="in preparation">In Preparation</option>
-                <option value="listed">Listed</option>
-                <option value="sold">Sold</option>
-              </select>
+        )}
+
+        {/* Table Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
+                <p className="text-gray-600 font-medium">Loading auction purchases...</p>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow-md p-5">
-          <div className="flex justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500">Total Investment</p>
-              <p className="text-2xl font-bold text-gray-900">
-                ${auctions.reduce((sum, auction) => sum + auction.totalInvestment, 0).toLocaleString()}
-              </p>
-            </div>
-            <div className="h-12 w-12 bg-blue-100 rounded-md flex items-center justify-center">
-              <DollarSign className="h-6 w-6 text-blue-700" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-md p-5">
-          <div className="flex justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500">Total Profit</p>
-              <p className="text-2xl font-bold text-green-600">
-                ${auctions.reduce((sum, auction) => sum + auction.profit, 0).toLocaleString()}
-              </p>
-            </div>
-            <div className="h-12 w-12 bg-green-100 rounded-md flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-green-700" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-md p-5">
-          <div className="flex justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500">Vehicles Purchased</p>
-              <p className="text-2xl font-bold text-gray-900">{auctions.length}</p>
-            </div>
-            <div className="h-12 w-12 bg-purple-100 rounded-md flex items-center justify-center">
-              <Gavel className="h-6 w-6 text-purple-700" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-md p-5">
-          <div className="flex justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500">Vehicles Sold</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {auctions.filter(auction => auction.status === 'Sold').length}
-              </p>
-            </div>
-            <div className="h-12 w-12 bg-amber-100 rounded-md flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Auctions Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('vehicle')}
-                >
-                  <div className="flex items-center">
-                    Vehicle
-                    {sortField === 'vehicle' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('purchaseDate')}
-                >
-                  <div className="flex items-center">
-                    Purchase Date
-                    {sortField === 'purchaseDate' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('purchasePrice')}
-                >
-                  <div className="flex items-center">
-                    Purchase Price
-                    {sortField === 'purchasePrice' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('totalInvestment')}
-                >
-                  <div className="flex items-center">
-                    Total Investment
-                    {sortField === 'totalInvestment' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('listPrice')}
-                >
-                  <div className="flex items-center">
-                    List Price
-                    {sortField === 'listPrice' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('soldPrice')}
-                >
-                  <div className="flex items-center">
-                    Sold Price
-                    {sortField === 'soldPrice' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Status
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('profit')}
-                >
-                  <div className="flex items-center">
-                    Profit
-                    {sortField === 'profit' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
-                    )}
-                  </div>
-                </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {sortedAuctions.map((auction) => (
-                <tr key={auction.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{auction.vehicle}</div>
-                    <div className="text-sm text-gray-500">VIN: {auction.vin}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(auction.purchaseDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${auction.purchasePrice.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${auction.totalInvestment.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${auction.listPrice.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {auction.soldPrice ? `$${auction.soldPrice.toLocaleString()}` : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      auction.status === 'Sold' 
-                        ? 'bg-green-100 text-green-800' 
-                        : auction.status === 'Listed'
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {auction.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                    ${auction.profit.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button 
-                      onClick={() => handleViewAuction(auction)}
-                      className="text-blue-700 hover:text-blue-800 mr-3"
+          ) : auctions.length > 0 ? (
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th 
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort('make')}
                     >
-                      <Edit className="h-5 w-5" />
-                    </button>
-                    <button className="text-red-600 hover:text-red-700">
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      <div className="flex items-center">
+                        <Car className="h-4 w-4 mr-2 text-gray-400" />
+                        Vehicle
+                        {sortField === 'make' && (
+                          sortDirection === 'asc' ? 
+                            <ChevronUp className="inline h-4 w-4 ml-2 text-blue-600" /> : 
+                            <ChevronDown className="inline h-4 w-4 ml-2 text-blue-600" />
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort('purchase_date')}
+                    >
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                        Purchase Date
+                        {sortField === 'purchase_date' && (
+                          sortDirection === 'asc' ? 
+                            <ChevronUp className="inline h-4 w-4 ml-2 text-blue-600" /> : 
+                            <ChevronDown className="inline h-4 w-4 ml-2 text-blue-600" />
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort('purchase_price')}
+                    >
+                      <div className="flex items-center">
+                        <DollarSign className="h-4 w-4 mr-2 text-gray-400" />
+                        Purchase Price
+                        {sortField === 'purchase_price' && (
+                          sortDirection === 'asc' ? 
+                            <ChevronUp className="inline h-4 w-4 ml-2 text-blue-600" /> : 
+                            <ChevronDown className="inline h-4 w-4 ml-2 text-blue-600" />
+                        )}
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <div className="flex items-center">
+                        <Tag className="h-4 w-4 mr-2 text-gray-400" />
+                        Status
+                      </div>
+                    </th>
+                    <th 
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort('list_price')}
+                    >
+                      <div className="flex items-center">
+                        <DollarSign className="h-4 w-4 mr-2 text-gray-400" />
+                        List Price
+                        {sortField === 'list_price' && (
+                          sortDirection === 'asc' ? 
+                            <ChevronUp className="inline h-4 w-4 ml-2 text-blue-600" /> : 
+                            <ChevronDown className="inline h-4 w-4 ml-2 text-blue-600" />
+                        )}
+                      </div>
+                    </th>
+
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {auctions.map((auction) => (
+                    <tr 
+                      key={auction.id}
+                      className="hover:bg-gray-50 transition-colors cursor-pointer group"
+                      onClick={() => handleRowClick(auction.id)}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-12 w-12 flex-shrink-0">
+                            {auction.images?.[0] ? (
+                              <img
+                                className="h-12 w-12 rounded-xl object-cover border border-gray-200"
+                                src={auction.images[0]}
+                                alt={`${auction.make} ${auction.model}`}
+                              />
+                            ) : (
+                              <div className="h-12 w-12 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center">
+                                <Car className="h-6 w-6 text-gray-400" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-semibold text-gray-900">
+                              {auction.make} {auction.model}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {auction.year} • {auction.vin}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {new Date(auction.purchase_date).toLocaleDateString()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-semibold text-gray-900">
+                          ${auction.purchase_price?.toLocaleString()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadge(auction.status)}`}>
+                          {auction.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-semibold text-gray-900">
+                          ${auction.list_price?.toLocaleString()}
+                        </div>
+                      </td>
+
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+                        {/* Page Numbers Below Table */}
+            {pagination && (
+              <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
+                <div className="flex items-center justify-center space-x-2">
+                  {/* Left Arrow Button */}
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={!pagination.has_previous}
+                    className={`p-2 rounded-lg border transition-colors ${
+                      !pagination.has_previous
+                        ? 'text-gray-300 border-gray-200 cursor-not-allowed'
+                        : 'text-gray-500 border-gray-300 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400'
+                    }`}
+                    title="Previous Page"
+                  >
+                    <ChevronDown className="h-5 w-5 rotate-90" />
+                  </button>
+                  
+                  {/* Page Numbers */}
+                  <div className="flex items-center space-x-2">
+                    {(() => {
+                      const pages = [];
+                      const totalPages = pagination.total_pages;
+                      const current = currentPage;
+                      
+                      // Always show first page
+                      pages.push(
+                        <button
+                          key={1}
+                          onClick={() => handlePageChange(1)}
+                          className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                            current === 1
+                              ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                              : 'border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400'
+                          }`}
+                        >
+                          1
+                        </button>
+                      );
+                      
+                      // Show ellipsis if there's a gap after page 1
+                      if (current > 3) {
+                        pages.push(
+                          <span key="ellipsis-1" className="px-3 py-2 text-gray-500">
+                            ...
+                          </span>
+                        );
+                      }
+                      
+                      // Show pages around current page
+                      for (let i = Math.max(2, current - 1); i <= Math.min(totalPages - 1, current + 1); i++) {
+                        if (i !== 1 && i !== totalPages) {
+                          pages.push(
+                            <button
+                              key={i}
+                              onClick={() => handlePageChange(i)}
+                              className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                                current === i
+                                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                                  : 'border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400'
+                              }`}
+                            >
+                              {i}
+                            </button>
+                          );
+                        }
+                      }
+                      
+                      // Show ellipsis if there's a gap before last page
+                      if (current < totalPages - 2) {
+                        pages.push(
+                          <span key="ellipsis-2" className="px-3 py-2 text-gray-500">
+                            ...
+                          </span>
+                        );
+                      }
+                      
+                      // Always show last page (if there is more than one page)
+                      if (totalPages > 1) {
+                        pages.push(
+                          <button
+                            key={totalPages}
+                            onClick={() => handlePageChange(totalPages)}
+                            className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                              current === totalPages
+                                ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                                : 'border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400'
+                            }`}
+                          >
+                            {totalPages}
+                          </button>
+                        );
+                      }
+                      
+                      return pages;
+                    })()}
+                  </div>
+                  
+                  {/* Right Arrow Button */}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={!pagination.has_next}
+                    className={`p-2 rounded-lg border transition-colors ${
+                      !pagination.has_next
+                        ? 'text-gray-300 border-gray-200 cursor-not-allowed'
+                        : 'text-gray-500 border-gray-300 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400'
+                    }`}
+                    title="Next Page"
+                  >
+                    <ChevronDown className="h-5 w-5 -rotate-90" />
+                  </button>
+                </div>
+                
+                {/* Page Info */}
+                <div className="text-center mt-3">
+                  <p className="text-sm text-gray-600">
+                    Page {pagination.current_page} of {pagination.total_pages} • {pagination.total_items} total auctions
+                  </p>
+                </div>
+              </div>
+            )}
+            </>
+          ) : (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <Car className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No auction purchases found</h3>
+                <p className="text-gray-600 mb-4">Get started by adding your first auction purchase.</p>
+                <button
+                  onClick={() => {
+                    setSelectedAuction(null);
+                    setShowModal(true);
+                  }}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add First Purchase
+                </button>
+              </div>
+            </div>
+          )}
         </div>
+
+
       </div>
     </div>
   );
 };
 
-export default Auctions;
+export default AuctionsPage;

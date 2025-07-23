@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Export Formats Test</title>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xmlbuilder/15.1.1/xmlbuilder.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8fafc;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #1e293b;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .export-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .export-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .export-card:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        }
+        .export-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        .export-title {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+        .export-desc {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+        .export-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+        .export-btn:hover {
+            background: #2563eb;
+        }
+        .info-section {
+            background: #f1f5f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        .info-section h3 {
+            color: #1e293b;
+            margin-bottom: 15px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .info-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #3b82f6;
+        }
+        .info-title {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+        .info-desc {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Payment Export Formats Test</h1>
+        
+        <div class="export-grid">
+            <div class="export-card" onclick="testExcelExport()">
+                <div class="export-icon">📊</div>
+                <div class="export-title">Excel (.xlsx)</div>
+                <div class="export-desc">Professional spreadsheet format</div>
+                <button class="export-btn">Export Excel</button>
+            </div>
+            
+            <div class="export-card" onclick="testPDFExport()">
+                <div class="export-icon">📄</div>
+                <div class="export-title">PDF (.pdf)</div>
+                <div class="export-desc">Professional document format</div>
+                <button class="export-btn">Export PDF</button>
+            </div>
+            
+            <div class="export-card" onclick="testCSVExport()">
+                <div class="export-icon">📋</div>
+                <div class="export-title">CSV (.csv)</div>
+                <div class="export-desc">Simple data format</div>
+                <button class="export-btn">Export CSV</button>
+            </div>
+            
+            <div class="export-card" onclick="testJSONExport()">
+                <div class="export-icon">🔧</div>
+                <div class="export-title">JSON (.json)</div>
+                <div class="export-desc">Structured data format</div>
+                <button class="export-btn">Export JSON</button>
+            </div>
+            
+            <div class="export-card" onclick="testXMLExport()">
+                <div class="export-icon">🏢</div>
+                <div class="export-title">XML (.xml)</div>
+                <div class="export-desc">Enterprise data format</div>
+                <button class="export-btn">Export XML</button>
+            </div>
+            
+            <div class="export-card" onclick="testHTMLExport()">
+                <div class="export-icon">🌐</div>
+                <div class="export-title">HTML (.html)</div>
+                <div class="export-desc">Web report format</div>
+                <button class="export-btn">Export HTML</button>
+            </div>
+            
+            <div class="export-card" onclick="testTextExport()">
+                <div class="export-icon">📝</div>
+                <div class="export-title">Text (.txt)</div>
+                <div class="export-desc">Simple text format</div>
+                <button class="export-btn">Export Text</button>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>📋 Export Format Information</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-title">Excel (.xlsx)</div>
+                    <div class="info-desc">Best for business reports, data analysis, and sharing with stakeholders. Compatible with Excel, Google Sheets, and other spreadsheet applications.</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-title">PDF (.pdf)</div>
+                    <div class="info-desc">Best for official reports, printing, and archiving. Professional document format with table layout.</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-title">CSV (.csv)</div>
+                    <div class="info-desc">Best for data analysis, database imports, and simple spreadsheets. Universal compatibility.</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-title">JSON (.json)</div>
+                    <div class="info-desc">Best for API integrations, data processing, and developer use. Includes metadata and structured data.</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-title">XML (.xml)</div>
+                    <div class="info-desc">Best for enterprise systems, legacy integrations, and data exchange. Industry standard format.</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-title">HTML (.html)</div>
+                    <div class="info-desc">Best for web reports, email sharing, and online viewing. Beautiful styling with statistics.</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-title">Text (.txt)</div>
+                    <div class="info-desc">Best for simple reports, logging, and basic documentation. Universal text format.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample payment data
+        const testPayments = [
+            {
+                id: '1',
+                customer: 'John Doe',
+                description: 'Vehicle Purchase - 2020 Toyota Camry',
+                amount: 25000,
+                date: '2024-01-15',
+                status: 'completed',
+                type: 'vehicle purchase',
+                transactionId: 'txn_123456',
+                is_stripe: true,
+                vehicle_id: 'v001',
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-15T10:30:00Z'
+            },
+            {
+                id: '2',
+                customer: 'Jane Smith',
+                description: 'Vehicle Hold - 2019 Honda Civic',
+                amount: 500,
+                date: '2024-01-16',
+                status: 'pending',
+                type: 'vehicle hold',
+                transactionId: 'txn_789012',
+                is_stripe: false,
+                vehicle_id: 'v002',
+                created_at: '2024-01-16T14:20:00Z',
+                updated_at: '2024-01-16T14:20:00Z'
+            },
+            {
+                id: '3',
+                customer: 'Mike Johnson',
+                description: 'Service Payment - Oil Change',
+                amount: 75,
+                date: '2024-01-17',
+                status: 'completed',
+                type: 'service',
+                transactionId: 'txn_345678',
+                is_stripe: true,
+                vehicle_id: 'v003',
+                created_at: '2024-01-17T09:15:00Z',
+                updated_at: '2024-01-17T09:15:00Z'
+            }
+        ];
+
+        // Helper function to download file
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // Helper function to format payment data
+        function formatPaymentData(payment) {
+            return {
+                'Payment ID': payment.id,
+                'Customer': payment.customer,
+                'Description': payment.description,
+                'Amount': `$${payment.amount.toFixed(2)}`,
+                'Date': new Date(payment.date).toLocaleDateString(),
+                'Status': payment.status,
+                'Type': payment.type,
+                'Transaction ID': payment.transactionId || 'N/A',
+                'Payment Method': payment.is_stripe ? 'Stripe' : 'Manual',
+                'Vehicle ID': payment.vehicle_id || 'N/A',
+                'Created At': payment.created_at ? new Date(payment.created_at).toLocaleString() : 'N/A',
+                'Updated At': payment.updated_at ? new Date(payment.updated_at).toLocaleString() : 'N/A'
+            };
+        }
+
+        function testExcelExport() {
+            try {
+                const excelData = testPayments.map(formatPaymentData);
+                const workbook = XLSX.utils.book_new();
+                const worksheet = XLSX.utils.json_to_sheet(excelData);
+                
+                const columnWidths = [
+                    { wch: 15 }, { wch: 20 }, { wch: 30 }, { wch: 12 }, { wch: 15 },
+                    { wch: 12 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 },
+                    { wch: 20 }, { wch: 20 }
+                ];
+                worksheet['!cols'] = columnWidths;
+                
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'Payments');
+                
+                const timestamp = new Date().toISOString().split('T')[0];
+                const filename = `test_payments_${timestamp}.xlsx`;
+                
+                XLSX.writeFile(workbook, filename);
+                alert('Excel file exported successfully!');
+            } catch (error) {
+                console.error('Error exporting to Excel:', error);
+                alert('Failed to export Excel file');
+            }
+        }
+
+        function testPDFExport() {
+            try {
+                const doc = new jsPDF.jsPDF('landscape', 'mm', 'a4');
+                
+                doc.setFontSize(20);
+                doc.text('Payment Report', 14, 20);
+                
+                doc.setFontSize(12);
+                doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+                doc.text(`Total Payments: ${testPayments.length}`, 14, 40);
+
+                const tableData = testPayments.map(payment => [
+                    payment.id,
+                    payment.customer,
+                    payment.description,
+                    `$${payment.amount.toFixed(2)}`,
+                    new Date(payment.date).toLocaleDateString(),
+                    payment.status,
+                    payment.type,
+                    payment.is_stripe ? 'Stripe' : 'Manual'
+                ]);
+
+                doc.autoTable({
+                    head: [['ID', 'Customer', 'Description', 'Amount', 'Date', 'Status', 'Type', 'Method']],
+                    body: tableData,
+                    startY: 50,
+                    styles: { fontSize: 8, cellPadding: 2 },
+                    headStyles: { fillColor: [59, 130, 246], textColor: 255 },
+                    alternateRowStyles: { fillColor: [248, 250, 252] },
+                    columnStyles: {
+                        0: { cellWidth: 20 }, 1: { cellWidth: 30 }, 2: { cellWidth: 40 },
+                        3: { cellWidth: 20 }, 4: { cellWidth: 25 }, 5: { cellWidth: 20 },
+                        6: { cellWidth: 25 }, 7: { cellWidth: 20 }
+                    }
+                });
+
+                const timestamp = new Date().toISOString().split('T')[0];
+                const filename = `test_payments_${timestamp}.pdf`;
+                
+                doc.save(filename);
+                alert('PDF file exported successfully!');
+            } catch (error) {
+                console.error('Error exporting to PDF:', error);
+                alert('Failed to export PDF file');
+            }
+        }
+
+        function testCSVExport() {
+            try {
+                const csvData = testPayments.map(formatPaymentData);
+                const csv = Papa.unparse(csvData);
+                
+                const timestamp = new Date().toISOString().split('T')[0];
+                const filename = `test_payments_${timestamp}.csv`;
+                
+                downloadFile(csv, filename, 'text/csv;charset=utf-8;');
+                alert('CSV file exported successfully!');
+            } catch (error) {
+                console.error('Error exporting to CSV:', error);
+                alert('Failed to export CSV file');
+            }
+        }
+
+        function testJSONExport() {
+            try {
+                const jsonData = {
+                    metadata: {
+                        generatedAt: new Date().toISOString(),
+                        totalPayments: testPayments.length,
+                        exportFormat: 'JSON'
+                    },
+                    payments: testPayments.map(payment => ({
+                        ...payment,
+                        amount: parseFloat(payment.amount.toFixed(2)),
+                        date: new Date(payment.date).toISOString(),
+                        created_at: payment.created_at ? new Date(payment.created_at).toISOString() : null,
+                        updated_at: payment.updated_at ? new Date(payment.updated_at).toISOString() : null
+                    }))
+                };
+                
+                const json = JSON.stringify(jsonData, null, 2);
+                
+                const timestamp = new Date().toISOString().split('T')[0];
+                const filename = `test_payments_${timestamp}.json`;
+                
+                downloadFile(json, filename, 'application/json');
+                alert('JSON file exported successfully!');
+            } catch (error) {
+                console.error('Error exporting to JSON:', error);
+                alert('Failed to export JSON file');
+            }
+        }
+
+        function testXMLExport() {
+            try {
+                const xmlDoc = xmlbuilder.create('payments')
+                    .att('generatedAt', new Date().toISOString())
+                    .att('totalCount', testPayments.length.toString());
+
+                testPayments.forEach(payment => {
+                    const paymentElement = xmlDoc.ele('payment')
+                        .ele('id', payment.id).up()
+                        .ele('customer', payment.customer).up()
+                        .ele('description', payment.description).up()
+                        .ele('amount', payment.amount.toFixed(2)).up()
+                        .ele('date', new Date(payment.date).toISOString()).up()
+                        .ele('status', payment.status).up()
+                        .ele('type', payment.type).up()
+                        .ele('transactionId', payment.transactionId || '').up()
+                        .ele('paymentMethod', payment.is_stripe ? 'Stripe' : 'Manual').up()
+                        .ele('vehicleId', payment.vehicle_id || '').up()
+                        .ele('createdAt', payment.created_at || '').up()
+                        .ele('updatedAt', payment.updated_at || '');
+                });
+
+                const xml = xmlDoc.end({ pretty: true });
+                
+                const timestamp = new Date().toISOString().split('T')[0];
+                const filename = `test_payments_${timestamp}.xml`;
+                
+                downloadFile(xml, filename, 'application/xml');
+                alert('XML file exported successfully!');
+            } catch (error) {
+                console.error('Error exporting to XML:', error);
+                alert('Failed to export XML file');
+            }
+        }
+
+        function testHTMLExport() {
+            try {
+                const totalAmount = testPayments.reduce((sum, p) => sum + p.amount, 0);
+                
+                const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Report - Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8fafc;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 20px;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            display: block;
+        }
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        .table-container {
+            padding: 30px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th {
+            background-color: #f1f5f9;
+            color: #1e293b;
+            font-weight: 600;
+            text-align: left;
+            padding: 12px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        tr:hover {
+            background-color: #f1f5f9;
+        }
+        .amount {
+            font-weight: 600;
+            color: #059669;
+        }
+        .status-completed {
+            color: #059669;
+            font-weight: 600;
+        }
+        .status-pending {
+            color: #d97706;
+            font-weight: 600;
+        }
+        .footer {
+            background-color: #f1f5f9;
+            padding: 20px 30px;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Payment Report</h1>
+            <p>Comprehensive payment transaction details</p>
+            <div class="stats">
+                <div class="stat">
+                    <span class="stat-value">${testPayments.length}</span>
+                    <span class="stat-label">Total Payments</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value">$${totalAmount.toFixed(2)}</span>
+                    <span class="stat-label">Total Amount</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value">${new Date().toLocaleDateString()}</span>
+                    <span class="stat-label">Generated Date</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Payment ID</th>
+                        <th>Customer</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Type</th>
+                        <th>Method</th>
+                        <th>Transaction ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${testPayments.map(payment => `
+                        <tr>
+                            <td>${payment.id}</td>
+                            <td>${payment.customer}</td>
+                            <td>${payment.description}</td>
+                            <td class="amount">$${payment.amount.toFixed(2)}</td>
+                            <td>${new Date(payment.date).toLocaleDateString()}</td>
+                            <td class="status-${payment.status.toLowerCase()}">${payment.status}</td>
+                            <td>${payment.type}</td>
+                            <td>${payment.is_stripe ? 'Stripe' : 'Manual'}</td>
+                            <td>${payment.transactionId || 'N/A'}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="footer">
+            <p>Generated on ${new Date().toLocaleString()} | Saam Cars LLC Payment System</p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+                const timestamp = new Date().toISOString().split('T')[0];
+                const filename = `test_payments_${timestamp}.html`;
+                
+                downloadFile(html, filename, 'text/html');
+                alert('HTML file exported successfully!');
+            } catch (error) {
+                console.error('Error exporting to HTML:', error);
+                alert('Failed to export HTML file');
+            }
+        }
+
+        function testTextExport() {
+            try {
+                const totalAmount = testPayments.reduce((sum, p) => sum + p.amount, 0);
+                
+                let text = `PAYMENT REPORT
+Generated: ${new Date().toLocaleString()}
+Total Payments: ${testPayments.length}
+Total Amount: $${totalAmount.toFixed(2)}
+
+${'='.repeat(80)}
+
+`;
+
+                testPayments.forEach((payment, index) => {
+                    text += `Payment #${index + 1}
+${'-'.repeat(40)}
+ID: ${payment.id}
+Customer: ${payment.customer}
+Description: ${payment.description}
+Amount: $${payment.amount.toFixed(2)}
+Date: ${new Date(payment.date).toLocaleDateString()}
+Status: ${payment.status}
+Type: ${payment.type}
+Method: ${payment.is_stripe ? 'Stripe' : 'Manual'}
+Transaction ID: ${payment.transactionId || 'N/A'}
+Vehicle ID: ${payment.vehicle_id || 'N/A'}
+Created: ${payment.created_at ? new Date(payment.created_at).toLocaleString() : 'N/A'}
+Updated: ${payment.updated_at ? new Date(payment.updated_at).toLocaleString() : 'N/A'}
+
+`;
+                });
+
+                text += `${'='.repeat(80)}
+Report End
+Generated by Saam Cars LLC Payment System`;
+
+                const timestamp = new Date().toISOString().split('T')[0];
+                const filename = `test_payments_${timestamp}.txt`;
+                
+                downloadFile(text, filename, 'text/plain');
+                alert('Text file exported successfully!');
+            } catch (error) {
+                console.error('Error exporting to Text:', error);
+                alert('Failed to export Text file');
+            }
+        }
+    </script>
+</body>
+</html> 

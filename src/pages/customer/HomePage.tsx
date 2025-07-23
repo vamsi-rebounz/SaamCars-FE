@@ -1,14 +1,47 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Shield, ThumbsUp, Clock, ArrowRight } from 'lucide-react';
-import { vehicles } from '../../data/vehicles';
+import { Shield, ThumbsUp, Clock, ArrowRight } from 'lucide-react';
+import { getInventory } from '../../services/inventory';
 import VehicleCard from '../../components/VehicleCard';
 
 const HomePage: React.FC = () => {
-  // Get featured vehicles
-  const featuredVehicles = vehicles
-    .filter(vehicle => vehicle.tags.includes('featured'))
-    .slice(0, 3);
+  const [featuredVehicles, setFeaturedVehicles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Remove all state and logic related to the search section
+
+  // Removed unused modelOptions, priceRanges, and navigate
+
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Fetch vehicles with 'Featured' tag, sorted by date_added descending
+        const response = await getInventory({ 
+          limit: 3, 
+          page: 1, 
+          sort_by: 'date_added', 
+          sort_order: 'desc'
+        });
+        if (response.success && response.vehicles) {
+          setFeaturedVehicles(response.vehicles);
+        } else {
+          setFeaturedVehicles([]);
+          setError('No vehicles found.');
+        }
+      } catch (err) {
+        setError('Failed to load featured vehicles.');
+        setFeaturedVehicles([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFeatured();
+  }, []);
+
+  // Remove the search handler
 
   return (
     <div>
@@ -42,48 +75,10 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Search Section */}
-      <section className="bg-white py-8 shadow-md">
-        <div className="container-custom">
-          <div className="flex items-center justify-center">
-            <div className="w-full max-w-4xl bg-white rounded-lg p-6">
-              <div className="flex items-center mb-4">
-                <Search className="h-6 w-6 text-blue-700 mr-2" />
-                <h2 className="text-2xl font-bold">Find Your Perfect Car</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="form-label">Make</label>
-                  <select className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
-                    <option value="">All Makes</option>
-                    <option value="Toyota">Toyota</option>
-                    <option value="Honda">Honda</option>
-                    <option value="Ford">Ford</option>
-                    <option value="BMW">BMW</option>
-                    <option value="Chevrolet">Chevrolet</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="form-label">Price Range</label>
-                  <select className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
-                    <option value="">Any Price</option>
-                    <option value="20000">Under $20,000</option>
-                    <option value="30000">Under $30,000</option>
-                    <option value="40000">Under $40,000</option>
-                    <option value="50000">Under $50,000</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="form-label">&nbsp;</label>
-                  <Link to="/inventory" className="btn-primary w-full block text-center">
-                    Search
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Remove the search section JSX */}
+
+      {/* Search Results or Featured Vehicles */}
+      {/* The search results section is removed as per the edit hint. */}
 
       {/* Featured Vehicles */}
       <section className="section bg-gray-50">
@@ -94,24 +89,36 @@ const HomePage: React.FC = () => {
               Explore our handpicked selection of premium pre-owned vehicles, each thoroughly inspected and ready for the road.
             </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredVehicles.map(vehicle => (
-              <VehicleCard
-                key={vehicle.id}
-                id={vehicle.id}
-                make={vehicle.make}
-                model={vehicle.model}
-                year={vehicle.year}
-                price={vehicle.price}
-                mileage={vehicle.mileage}
-                image={vehicle.images[0]}
-                condition={vehicle.condition}
-                tags={vehicle.tags}
-              />
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[220px]">
+            {loading ? (
+              <div className="col-span-3 flex justify-center items-center min-h-[180px]">
+                <span className="text-gray-400 text-lg">Loading...</span>
+              </div>
+            ) : error ? (
+              <div className="col-span-3 flex justify-center items-center min-h-[180px]">
+                <span className="text-red-500">{error}</span>
+              </div>
+            ) : featuredVehicles.length === 0 ? (
+              <div className="col-span-3 flex justify-center items-center min-h-[180px]">
+                <span className="text-gray-400">No vehicles found.</span>
+              </div>
+            ) : (
+              featuredVehicles.map(vehicle => (
+                <VehicleCard
+                  key={vehicle.id}
+                  id={vehicle.id}
+                  make={vehicle.make}
+                  model={vehicle.model}
+                  year={vehicle.year}
+                  price={vehicle.price}
+                  mileage={vehicle.mileage}
+                  image={vehicle.images && vehicle.images[0]}
+                  condition={vehicle.condition}
+                  tags={vehicle.tags || []}
+                />
+              ))
+            )}
           </div>
-          
           <div className="text-center mt-10">
             <Link to="/inventory" className="btn-primary inline-flex items-center">
               View All Inventory

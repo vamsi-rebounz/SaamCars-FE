@@ -5,30 +5,26 @@ import { useAuth } from '../../contexts/AuthContext';
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const { login } = useAuth();
+  const { login, isLoading, error, clearError } = useAuth();
   const navigate = useNavigate();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setIsLoading(true);
+    clearError();
     
     try {
-      const success = await login(email, password);
-      if (success) {
+      const result = await login(email, password);
+      if (result.success) {
         navigate('/');
-      } else {
-        setError('Invalid email or password');
       }
     } catch (err) {
-      setError('An error occurred during login');
-      console.error(err);
-    } finally {
-      setIsLoading(false);
+      console.error('Login error:', err);
     }
+  };
+
+  const handleDemoLogin = (demoEmail: string, demoPassword: string) => {
+    setEmail(demoEmail);
+    setPassword(demoPassword);
   };
 
   return (
@@ -104,9 +100,9 @@ const LoginPage: React.FC = () => {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-blue-700 hover:text-blue-800">
+                <Link to="/forgot-password" className="font-medium text-blue-700 hover:text-blue-800">
                   Forgot your password?
-                </a>
+                </Link>
               </div>
             </div>
 
@@ -131,11 +127,33 @@ const LoginPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-1 gap-3">
+            <div className="mt-6 space-y-3">
               <div>
-                <p className="text-sm text-gray-600 mb-2">For testing purposes:</p>
-                <p className="text-sm text-gray-600">Customer: <span className="font-mono">user@example.com</span> / <span className="font-mono">password</span></p>
-                <p className="text-sm text-gray-600">Admin: <span className="font-mono">admin@samcars.com</span> / <span className="font-mono">password</span></p>
+                <p className="text-sm font-medium text-gray-700 mb-3">Try these demo accounts:</p>
+                
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDemoLogin('user@example.com', 'password')}
+                    className="w-full flex justify-between items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <span className="font-medium">Customer Account</span>
+                    <span className="text-xs text-gray-500">user@example.com</span>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => handleDemoLogin('admin@saamcars.com', 'password')}
+                    className="w-full flex justify-between items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <span className="font-medium">Admin Account</span>
+                    <span className="text-xs text-gray-500">admin@saamcars.com</span>
+                  </button>
+                </div>
+                
+                <p className="text-xs text-gray-500 mt-2">
+                  Password for both accounts: <span className="font-mono font-medium">password</span>
+                </p>
               </div>
             </div>
           </div>

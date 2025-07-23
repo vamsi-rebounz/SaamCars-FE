@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL, getAuthHeader } from '../config/api';
+import type { InternalAxiosRequestConfig, AxiosHeaders } from 'axios';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -9,9 +10,18 @@ const api = axios.create({
 });
 
 // Add auth token to requests
-api.interceptors.request.use((config) => {
+api.interceptors.request.use((config: InternalAxiosRequestConfig<any>) => {
   const headers = getAuthHeader();
-  config.headers = { ...config.headers, ...headers };
+  if (headers.Authorization) {
+    if (config.headers && typeof config.headers === 'object') {
+      // If Axios v1, headers may be an instance of AxiosHeaders
+      if (typeof (config.headers as any).set === 'function') {
+        (config.headers as AxiosHeaders).set('Authorization', headers.Authorization);
+      } else {
+        (config.headers as Record<string, any>)['Authorization'] = headers.Authorization;
+      }
+    }
+  }
   return config;
 });
 

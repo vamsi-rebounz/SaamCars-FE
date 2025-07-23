@@ -69,34 +69,6 @@ const Appointments: React.FC = () => {
     },
   ];
   
-  const handlePrevious = () => {
-    const newDate = new Date(currentDate);
-    if (view === 'day') {
-      newDate.setDate(newDate.getDate() - 1);
-    } else if (view === 'week') {
-      newDate.setDate(newDate.getDate() - 7);
-    } else {
-      newDate.setMonth(newDate.getMonth() - 1);
-    }
-    setCurrentDate(newDate);
-  };
-  
-  const handleNext = () => {
-    const newDate = new Date(currentDate);
-    if (view === 'day') {
-      newDate.setDate(newDate.getDate() + 1);
-    } else if (view === 'week') {
-      newDate.setDate(newDate.getDate() + 7);
-    } else {
-      newDate.setMonth(newDate.getMonth() + 1);
-    }
-    setCurrentDate(newDate);
-  };
-  
-  const handleToday = () => {
-    setCurrentDate(new Date());
-  };
-  
   const handleViewAppointment = (appointment: any) => {
     setSelectedAppointment(appointment);
   };
@@ -124,80 +96,122 @@ const Appointments: React.FC = () => {
   };
   
   const weekDays = generateWeekDays();
+
+  const handlePrevWeek = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() - 7);
+    setCurrentDate(newDate);
+  };
+
+  const handleNextWeek = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() + 7);
+    setCurrentDate(newDate);
+  };
+
+  const handlePrevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
   
-  // Filter appointments for the current view
+  // Helper function to get appointments for a specific date
   const getAppointmentsForDate = (date: Date) => {
     const dateString = date.toISOString().split('T')[0];
     return appointments.filter(appointment => appointment.date === dateString);
   };
 
+  // Helper function to get month days
+  const getMonthDays = () => {
+    const month = currentDate.getMonth();
+    const year = currentDate.getFullYear();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDayOfMonth = new Date(year, month, 1);
+    const firstDayOfWeek = firstDayOfMonth.getDay(); // 0 for Sunday, 6 for Saturday
+
+    const days: { date: Date; isCurrentMonth: boolean; isToday: boolean; appointments: any[] }[] = [];
+
+    // Add days from previous month to fill the first week
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      const date = new Date(year, month, -i);
+      days.push({ date, isCurrentMonth: false, isToday: false, appointments: [] });
+    }
+
+    // Add days for the current month
+    for (let i = 1; i <= daysInMonth; i++) {
+      const date = new Date(year, month, i);
+      const dayAppointments = getAppointmentsForDate(date);
+      days.push({ date, isCurrentMonth: true, isToday: date.toDateString() === new Date().toDateString(), appointments: dayAppointments });
+    }
+
+    // Add days from next month to fill the last week
+    const remainingDays = 7 - (days.length % 7);
+    if (remainingDays < 7) {
+      for (let i = 1; i <= remainingDays; i++) {
+        const date = new Date(year, month + 1, i);
+        days.push({ date, isCurrentMonth: false, isToday: false, appointments: [] });
+      }
+    }
+
+    return days;
+  };
+
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Appointment Manager</h1>
-      
-      {/* Calendar Controls */}
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center mb-4 sm:mb-0">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Appointments</h1>
+        <div className="flex items-center space-x-4">
+          {/* View Toggle */}
+          <div className="flex bg-gray-100 rounded-lg p-1">
             <button
-              onClick={handlePrevious}
-              className="p-2 rounded-md hover:bg-gray-100"
+              onClick={() => setView('day')}
+              className={`px-3 py-1 rounded ${
+                view === 'day' ? 'bg-white shadow' : 'text-gray-600'
+              }`}
             >
-              <ChevronLeft className="h-5 w-5 text-gray-600" />
+              Day
             </button>
             <button
-              onClick={handleNext}
-              className="p-2 rounded-md hover:bg-gray-100"
+              onClick={() => setView('week')}
+              className={`px-3 py-1 rounded ${
+                view === 'week' ? 'bg-white shadow' : 'text-gray-600'
+              }`}
             >
-              <ChevronRight className="h-5 w-5 text-gray-600" />
+              Week
             </button>
-            <h2 className="ml-4 text-lg font-semibold text-gray-900">
-              {view === 'day' && currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-              {view === 'week' && `${weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
-              {view === 'month' && currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-            </h2>
+            <button
+              onClick={() => setView('month')}
+              className={`px-3 py-1 rounded ${
+                view === 'month' ? 'bg-white shadow' : 'text-gray-600'
+              }`}
+            >
+              Month
+            </button>
           </div>
-          
-          <div className="flex items-center">
+
+          {/* Navigation */}
+          <div className="flex items-center space-x-2">
             <button
-              onClick={handleToday}
-              className="mr-4 px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              onClick={view === 'month' ? handlePrevMonth : handlePrevWeek}
+              className="p-1 hover:bg-gray-100 rounded"
             >
-              Today
+              <ChevronLeft className="h-5 w-5" />
             </button>
-            
-            <div className="flex border border-gray-300 rounded-md">
-              <button
-                onClick={() => setView('day')}
-                className={`px-3 py-1.5 text-sm font-medium ${
-                  view === 'day'
-                    ? 'bg-blue-700 text-white'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Day
-              </button>
-              <button
-                onClick={() => setView('week')}
-                className={`px-3 py-1.5 text-sm font-medium ${
-                  view === 'week'
-                    ? 'bg-blue-700 text-white'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Week
-              </button>
-              <button
-                onClick={() => setView('month')}
-                className={`px-3 py-1.5 text-sm font-medium ${
-                  view === 'month'
-                    ? 'bg-blue-700 text-white'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Month
-              </button>
-            </div>
+            <span className="text-gray-600">
+              {view === 'month' 
+                ? currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })
+                : `Week of ${weekDays[0].toLocaleDateString()}`
+              }
+            </span>
+            <button
+              onClick={view === 'month' ? handleNextMonth : handleNextWeek}
+              className="p-1 hover:bg-gray-100 rounded"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
           </div>
         </div>
       </div>
@@ -393,10 +407,49 @@ const Appointments: React.FC = () => {
           </div>
           
           <div className="grid grid-cols-7 grid-rows-5 min-h-[500px]">
-            {/* Month calendar cells would go here */}
-            <div className="h-full flex items-center justify-center text-gray-400 border p-2">
-              <p className="text-sm">Month view coming soon</p>
-            </div>
+            {getMonthDays().map((day, index) => (
+              <div 
+                key={index} 
+                className={`h-full border p-2 ${
+                  day.isCurrentMonth ? 'bg-white' : 'bg-gray-50'
+                } ${
+                  day.isToday ? 'bg-blue-50' : ''
+                }`}
+              >
+                <div className="flex justify-between items-center mb-1">
+                  <span className={`text-sm ${
+                    day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
+                  }`}>
+                    {day.date.getDate()}
+                  </span>
+                  {day.appointments.length > 0 && (
+                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 rounded-full">
+                      {day.appointments.length}
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  {day.appointments.slice(0, 3).map((appointment, i) => (
+                    <div
+                      key={i}
+                      onClick={() => setSelectedAppointment(appointment)}
+                      className={`text-xs p-1 rounded cursor-pointer truncate ${
+                        appointment.type === 'Test Drive' 
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-purple-100 text-purple-800'
+                      }`}
+                    >
+                      {appointment.time} - {appointment.customer}
+                    </div>
+                  ))}
+                  {day.appointments.length > 3 && (
+                    <div className="text-xs text-gray-500 pl-1">
+                      +{day.appointments.length - 3} more
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

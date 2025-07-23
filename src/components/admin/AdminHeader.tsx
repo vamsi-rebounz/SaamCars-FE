@@ -51,14 +51,14 @@ const AdminHeader: React.FC = () => {
               <Bell className="h-6 w-6" />
             </button>
             <div className="ml-3 relative">
-              <div className="flex items-center">
+              <Link to="/admin/profile" className="flex items-center hover:bg-gray-50 rounded-md p-2 transition-colors">
                 <span className="hidden md:block mr-2 text-sm font-medium text-gray-700">
                   {user?.name}
                 </span>
                 <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
                   <User className="h-5 w-5 text-gray-500" />
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
         </div>
@@ -83,13 +83,6 @@ const AdminHeader: React.FC = () => {
               Inventory
             </Link>
             <Link
-              to="/admin/appointments"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Appointments
-            </Link>
-            <Link
               to="/admin/payments"
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
               onClick={() => setIsMobileMenuOpen(false)}
@@ -109,6 +102,13 @@ const AdminHeader: React.FC = () => {
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Services
+            </Link>
+            <Link
+              to="/admin/profile"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Profile
             </Link>
             <button
               onClick={() => {
