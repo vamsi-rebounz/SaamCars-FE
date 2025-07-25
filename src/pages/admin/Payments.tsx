@@ -703,7 +703,7 @@ const Payments: React.FC = () => {
               className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full relative z-10"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="px-8 py-6">
+              <div className="px-8 py-6 relative">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center">
@@ -943,6 +943,18 @@ const Payments: React.FC = () => {
                   </div>
                 )}
               </div>
+              {/* Delete Confirmation Modal (show on top of details modal) */}
+              {showDeleteConfirmation && (
+                <div className="fixed inset-0 z-[1001] flex items-center justify-center">
+                  <DeleteConfirmationModal
+                    isOpen={showDeleteConfirmation}
+                    onClose={() => setShowDeleteConfirmation(false)}
+                    onConfirm={handleDeletePayment}
+                    title="Delete Payment"
+                    message={`Are you sure you want to delete payment #${selectedPayment?.id}? This action cannot be undone.`}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1000,24 +1012,15 @@ const Payments: React.FC = () => {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirmation && (
-        <DeleteConfirmationModal
-          isOpen={showDeleteConfirmation}
-          onClose={() => setShowDeleteConfirmation(false)}
-          onConfirm={handleDeletePayment}
-          title="Delete Payment"
-          message={`Are you sure you want to delete payment #${selectedPayment?.id}? This action cannot be undone.`}
-        />
-      )}
-
-      {/* Toast */}
+      {/* Toast (always render last, highest z-index) */}
       {toastMessage && (
-        <Toast
-          message={toastMessage}
-          type={toastType}
-          onClose={() => setToastMessage(null)}
-        />
+        <div className="fixed z-[1000000] top-8 left-1/2 transform -translate-x-1/2 w-auto max-w-md pointer-events-auto">
+          <Toast
+            message={toastMessage}
+            type={toastType}
+            onClose={() => setToastMessage(null)}
+          />
+        </div>
       )}
     </>
   );

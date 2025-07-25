@@ -27,6 +27,7 @@ interface Vehicle {
   carfax_link?: string;
   created_at?: string;
   updated_at?: string;
+  purchase_details?: any; // Added for purchase details
 }
 
 interface ErrorResponse {
@@ -107,6 +108,7 @@ const mapBackendVehicle = (v: any): Vehicle => ({
   carfax_link: v.carfax_link || '',
   created_at: v.created_at,
   updated_at: v.updated_at,
+  purchase_details: v.purchase_details || undefined,
 });
 
 export const addVehicle = async (vehicleData: FormData): Promise<AddVehicleResponse> => {
