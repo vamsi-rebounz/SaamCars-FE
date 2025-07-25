@@ -27,6 +27,7 @@ import AdminAuctionDetails from './pages/admin/AuctionDetails';
 import AdminProfile from './pages/admin/Profile';
 import BusinessSettings from './pages/admin/BusinessSettings';
 import AdminRoute from './components/auth/AdminRoute';
+import AllVehicles from './pages/admin/AllVehicles';
 
 // Components
 import LoadingSpinner from './components/LoadingSpinner';
@@ -91,6 +92,7 @@ const AppContent: React.FC = () => {
             <Route element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
               <Route path="inventory" element={<AdminInventory />} />
+              <Route path="all-vehicles" element={<AllVehicles />} />
               <Route path="inventory/:id" element={<AdminVehicleDetails />} />
               <Route path="payments" element={<AdminPayments />} />
               <Route path="auctions" element={<AdminAuctions />} />

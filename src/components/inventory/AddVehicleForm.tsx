@@ -616,8 +616,8 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
                 >
                   <option value="">Select status</option>
                   <option value="available">Available</option>
-                  <option value="recently-bought">Recently Bought</option>
-                  <option value="maintenance">Maintenance</option>
+                  <option value="under_maintenance">Under Maintenance</option>
+                  <option value="under_inspection">Under Inspection</option>
                 </select>
               </div>
             </div>
@@ -676,10 +676,19 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 >
                   <option value="">Select transmission</option>
-                  <option value="automatic">Automatic</option>
                   <option value="manual">Manual</option>
+                  <option value="automatic">Automatic</option>
                   <option value="cvt">CVT</option>
+                  <option value="amt">AMT</option>
+                  <option value="dct">DCT</option>
+                  <option value="dsg">DSG</option>
                   <option value="semi_automatic">Semi-Automatic</option>
+                  <option value="ivt">IVT</option>
+                  <option value="hydrostatic">Hydrostatic</option>
+                  <option value="mmt">MMT</option>
+                  <option value="hybird">Hybird</option>
+                  <option value="torque_converter">Torque Converter</option>
+                  <option value="tip_tronic">Tip-Tronic</option>
                 </select>
               </div>
 
@@ -696,14 +705,18 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 >
                   <option value="">Select body type</option>
+                  <option value="sports">Sports</option>
                   <option value="sedan">Sedan</option>
+                  <option value="hatchback">Hatchback</option>
                   <option value="suv">SUV</option>
-                  <option value="truck">Truck</option>
                   <option value="coupe">Coupe</option>
                   <option value="convertible">Convertible</option>
-                  <option value="hatchback">Hatchback</option>
-                  <option value="minivan">Minivan</option>
                   <option value="van">Van</option>
+                  <option value="minivan">Minivan</option>
+                  <option value="wagon">Wagon</option>
+                  <option value="pickup_truck">Pickup Truck</option>
+                  <option value="cargo_van">Cargo Van</option>
+                  <option value="bus">Bus</option>
                 </select>
               </div>
 

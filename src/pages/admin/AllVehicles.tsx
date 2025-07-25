@@ -36,12 +36,11 @@ interface Pagination {
   has_previous: boolean;
 }
 
-const Inventory: React.FC = () => {
+const AllVehicles: React.FC = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [searchInput, setSearchInput] = useState('');
   const [sortField, setSortField] = useState('date_added');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,35 +55,16 @@ const Inventory: React.FC = () => {
   const [formSuccessMessage, setFormSuccessMessage] = useState<string | null>(null);
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<{ [key: string]: boolean }>({});
+  const [showAuctionVehicles, setShowAuctionVehicles] = useState(false);
+  const [purchaseType, setPurchaseType] = useState('');
 
   // Debounce search term
   const debouncedSearch = useDebounce(searchInput, 500);
 
   const navigate = useNavigate();
 
-  console.log('Inventory component rendering with state:', { 
-    loading, 
-    error, 
-    vehiclesCount: vehicles.length,
-    searchInput,
-    sortField,
-    sortDirection,
-    currentPage,
-    filterStatus,
-    pagination
-  });
-
   // Fetch vehicles from API
   const fetchVehicles = async () => {
-    console.log('Fetching vehicles with filters:', {
-      search: debouncedSearch,
-      sort_by: sortField,
-      sort_order: sortDirection,
-      page: currentPage,
-      limit: itemsPerPage,
-      status: filterStatus,
-    });
-    
     setLoading(true);
     setError(null);
     try {
@@ -96,9 +76,9 @@ const Inventory: React.FC = () => {
         page: currentPage,
         limit: itemsPerPage,
         ...(filterStatus && { status: filterStatus }),
+        ...(showAuctionVehicles ? { auction: true } : {}),
       };
       const response = await getInventory(filters);
-      console.log('API response:', response);
       if (response.success && response.vehicles) {
         setVehicles(response.vehicles);
         setPagination(response.pagination || null);
@@ -106,19 +86,16 @@ const Inventory: React.FC = () => {
         setError(response.error || 'Failed to fetch vehicles');
       }
     } catch (err) {
-      console.error('Error fetching vehicles:', err);
       setError('Failed to fetch vehicles');
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch vehicles when dependencies change
   useEffect(() => {
     fetchVehicles();
-  }, [debouncedSearch, sortField, sortDirection, currentPage, itemsPerPage, filterStatus]);
+  }, [debouncedSearch, sortField, sortDirection, currentPage, itemsPerPage, filterStatus, showAuctionVehicles]);
 
-  // Filter and sort vehicles (client-side fallback)
   const filteredVehicles = vehicles.filter(vehicle => {
     const searchString = `${vehicle.make} ${vehicle.model} ${vehicle.year} ${vehicle.vin}`.toLowerCase();
     return searchString.includes(searchInput.toLowerCase());
@@ -127,12 +104,10 @@ const Inventory: React.FC = () => {
   const sortedVehicles = [...filteredVehicles].sort((a, b) => {
     let aValue: any = a[sortField as keyof typeof a];
     let bValue: any = b[sortField as keyof typeof b];
-
     if (sortField === 'created_at') {
       aValue = new Date(aValue).getTime();
       bValue = new Date(bValue).getTime();
     }
-
     if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
     if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
     return 0;
@@ -144,7 +119,7 @@ const Inventory: React.FC = () => {
       year: 'year',
       price: 'price',
       mileage: 'mileage',
-      created_at: 'date_added',  // Map created_at to date_added
+      created_at: 'date_added',
     };
     const apiField = fieldMap[field] || field;
     if (apiField === sortField) {
@@ -160,26 +135,18 @@ const Inventory: React.FC = () => {
     if (!selectedVehicleId) return;
     try {
       const response = await deleteVehicle(selectedVehicleId);
-      
       if (response.success) {
         setShowDeleteModal(false);
         setSelectedVehicleId(null);
         setSuccessMessage('Vehicle deleted successfully!');
-        await fetchVehicles(); // Refetch to sync with backend
-        // Clear success message after 3 seconds
+        await fetchVehicles();
         setTimeout(() => setSuccessMessage(null), 3000);
       } else {
         setError(response.error || 'Failed to delete vehicle');
       }
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Failed to delete vehicle');
-      console.error('Error deleting vehicle:', err);
     }
-  };
-
-  const closeAddModal = () => {
-    setShowAddModal(false);
-    setSelectedVehicle(null);
   };
 
   const handlePageChange = (page: number) => {
@@ -200,19 +167,7 @@ const Inventory: React.FC = () => {
   const handleEditComplete = () => {
     setShowEditModal(false);
     setSelectedVehicle(null);
-    fetchVehicles(); // Refresh the list after edit
-    // Clear form messages after 3 seconds
-    setTimeout(() => {
-      setFormSuccessMessage(null);
-      setFormErrorMessage(null);
-    }, 3000);
-  };
-
-  const handleAddComplete = () => {
-    setShowAddModal(false);
-    setError(null); // Clear any previous error
-    fetchVehicles(); // Refresh the list after add
-    // Clear form messages after 3 seconds
+    fetchVehicles();
     setTimeout(() => {
       setFormSuccessMessage(null);
       setFormErrorMessage(null);
@@ -230,7 +185,6 @@ const Inventory: React.FC = () => {
     navigate(`/admin/inventory/${id}`);
   };
 
-  // Get status icon and color
   const getStatusInfo = (status: string) => {
     switch (status) {
       case 'available':
@@ -320,24 +274,18 @@ const Inventory: React.FC = () => {
                   <Car className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
-                  <p className="text-gray-600 mt-1">Manage your vehicle inventory efficiently</p>
+                  <h1 className="text-3xl font-bold text-gray-900">All Vehicles</h1>
+                  <p className="text-gray-600 mt-1">View all vehicles in the system</p>
                 </div>
               </div>
             </div>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Add Vehicle
-            </button>
+            {/* Add Vehicle button removed for All Vehicles tab */}
           </div>
         </div>
 
         {/* Filters and Search */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Search */}
             <div className="flex-1 min-w-[220px]">
               <div className="relative">
@@ -367,6 +315,19 @@ const Inventory: React.FC = () => {
                 <option value="sold">Sold</option>
                 <option value="reserved">Reserved</option>
                 <option value="recently-bought">Under Inspection</option>
+              </select>
+            </div>
+            {/* Vehicle by purchase type */}
+            <div className="flex items-center min-w-[200px] w-full">
+              <select
+                id="purchase-type-filter"
+                value={purchaseType}
+                onChange={e => setPurchaseType(e.target.value)}
+                className="block w-full pl-4 pr-8 py-2 text-sm border-b-[1.5px] border-blue-600 rounded-none bg-transparent focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors"
+              >
+                <option value="" disabled>Purchase type</option>
+                <option value="auction">Bought in Auction</option>
+                <option value="individual">Bought from Individual</option>
               </select>
             </div>
             {/* Items per page */}
@@ -414,7 +375,7 @@ const Inventory: React.FC = () => {
               {error ? 'Error loading vehicles' : 'No vehicles found'}
             </h3>
             <p className="text-gray-500 mb-6">
-              {error ? 'There was an issue loading the inventory. Please try refreshing the page.' : 'Get started by adding your first vehicle to the inventory.'}
+              {error ? 'There was an issue loading the inventory. Please try refreshing the page.' : 'No vehicles found.'}
             </p>
             <div className="space-x-4">
               <button
@@ -423,13 +384,6 @@ const Inventory: React.FC = () => {
               >
                 <RefreshCw className="h-5 w-5 mr-2" />
                 Retry
-              </button>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                Add First Vehicle
               </button>
             </div>
           </div>
@@ -687,47 +641,6 @@ const Inventory: React.FC = () => {
 
       </div>
 
-      {/* Add Vehicle Modal */}
-      {showAddModal && (
-        <div className="fixed z-50 inset-0 overflow-y-auto">
-          {/* Background overlay */}
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={closeAddModal}></div>
-          
-          {/* Modal content */}
-          <div className="flex items-center justify-center min-h-screen p-4">
-            <div className="relative bg-white rounded-xl shadow-xl max-w-7xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <button
-                  className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-2 transition-colors z-10"
-                  onClick={closeAddModal}
-                >
-                  <X className="h-6 w-6" />
-                </button>
-                
-                <div className="flex items-start mb-6">
-                  <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mr-4">
-                    <Plus className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">
-                      Add New Vehicle
-                    </h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Fill out the form below to add a new vehicle to the inventory.
-                    </p>
-                  </div>
-                </div>
-
-                <AddVehicleForm
-                  onSuccess={handleAddComplete}
-                  isEditing={false}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Edit Vehicle Modal */}
       {showEditModal && selectedVehicle && (
         <div className="fixed z-50 inset-0 overflow-y-auto">
@@ -822,4 +735,4 @@ const Inventory: React.FC = () => {
   );
 };
 
-export default Inventory;
+export default AllVehicles; 

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Building, Mail, Phone, Save, Edit, X, Clock } from 'lucide-react';
+import { Mail, Phone, Save, Edit, X } from 'lucide-react';
 import { getBusinessSettings, updateBusinessSettings, type BusinessSettings } from '../../services/businessSettings';
+import TimePicker from 'react-time-picker';
+import 'react-time-picker/dist/TimePicker.css';
+import 'react-clock/dist/Clock.css';
 
 const defaultBusinessData: BusinessSettings = {
   businessName: '',
@@ -44,6 +47,20 @@ const US_STATES = [
   'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
   'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
 ];
+
+// Helper to format time to 12-hour format with AM/PM
+function to12HourFormat(time: string): string {
+  if (!time) return '';
+  // If already contains AM/PM, return as is
+  if (/am|pm/i.test(time)) return time;
+  const [hourStr, minuteStr] = time.split(':');
+  let hour = parseInt(hourStr, 10);
+  const minute = minuteStr ? minuteStr.padStart(2, '0') : '00';
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12;
+  if (hour === 0) hour = 12;
+  return `${hour.toString().padStart(2, '0')}:${minute} ${ampm}`;
+}
 
 const BusinessSettingsPage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -110,7 +127,20 @@ const BusinessSettingsPage: React.FC = () => {
     setSuccess(false);
 
     try {
-      const result = await updateBusinessSettings(businessData);
+      // Convert all businessHours to 12-hour format with AM/PM
+      const formattedBusinessHours = Object.fromEntries(
+        Object.entries(businessData.businessHours).map(([day, val]) => [
+          day,
+          {
+            open: val.open ? to12HourFormat(val.open) : '',
+            close: val.close ? to12HourFormat(val.close) : ''
+          }
+        ])
+      );
+      const result = await updateBusinessSettings({
+        ...businessData,
+        businessHours: formattedBusinessHours
+      });
       setSuccess(true);
       setIsEditing(false);
       setBusinessData(result);
@@ -379,34 +409,52 @@ const BusinessSettingsPage: React.FC = () => {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Business Hours</h3>
                 <div className="space-y-4">
                   {WEEKDAYS.map(({ key, label }, idx) => (
-                    <div key={key} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                    <div key={key} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center py-2">
                       <div className="font-medium text-gray-700 flex items-center gap-4">
-                        {label}
+                        <span className="min-w-[90px]">{label}</span>
                         <label className="flex items-center gap-2 text-xs cursor-pointer select-none" title="Mark this day as closed">
-                          <span className="sr-only">Closed</span>
-                          <span className="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
-                            <input
-                              type="checkbox"
-                              checked={!businessData.businessHours[key]?.open && !businessData.businessHours[key]?.close}
-                              disabled={!isEditing}
-                              onChange={e => {
-                                if (e.target.checked) {
-                                  handleHoursChange(key, 'open', '');
-                                  handleHoursChange(key, 'close', '');
-                                } else {
-                                  handleHoursChange(key, 'open', '09:00 AM');
-                                  handleHoursChange(key, 'close', '05:00 PM');
-                                }
-                              }}
-                              className="absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer checked:bg-blue-600 checked:border-blue-600 transition"
-                              style={{ left: 0, top: 0 }}
-                              aria-label={`Closed for ${label}`}
-                            />
-                            <span className="block w-10 h-6 rounded-full bg-gray-200 transition-colors duration-200 ease-in" />
-                            <span className={`absolute left-0 top-0 w-6 h-6 rounded-full transition-transform duration-200 ease-in ${!businessData.businessHours[key]?.open && !businessData.businessHours[key]?.close ? 'translate-x-4 bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`} style={{ border: '4px solid', borderColor: !businessData.businessHours[key]?.open && !businessData.businessHours[key]?.close ? '#2563eb' : '#d1d5db' }} />
-                          </span>
+                          <input
+                            type="checkbox"
+                            checked={!businessData.businessHours[key]?.open && !businessData.businessHours[key]?.close}
+                            disabled={!isEditing ? true : false}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                handleHoursChange(key, 'open', '');
+                                handleHoursChange(key, 'close', '');
+                              } else {
+                                handleHoursChange(key, 'open', businessData.businessHours['monday']?.open || '09:00 AM');
+                                handleHoursChange(key, 'close', businessData.businessHours['monday']?.close || '05:00 PM');
+                              }
+                            }}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                            aria-label={`Closed for ${label}`}
+                          />
                           <span className="ml-2 text-gray-500">Closed</span>
                         </label>
+                      </div>
+                      <div className="flex gap-1 items-center">
+                        <TimePicker
+                          value={businessData.businessHours[key]?.open || ''}
+                          onChange={val => handleHoursChange(key, 'open', val || '')}
+                          disableClock
+                          format="hh:mm a"
+                          clearIcon={null}
+                          disabled={!isEditing || (!businessData.businessHours[key]?.open && !businessData.businessHours[key]?.close)}
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="flex gap-1 items-center">
+                        <TimePicker
+                          value={businessData.businessHours[key]?.close || ''}
+                          onChange={val => handleHoursChange(key, 'close', val || '')}
+                          disableClock
+                          format="hh:mm a"
+                          clearIcon={null}
+                          disabled={!isEditing || (!businessData.businessHours[key]?.open && !businessData.businessHours[key]?.close)}
+                          className="w-full"
+                        />
+                      </div>
+                      <div>
                         {idx === 0 && isEditing && (
                           <button
                             type="button"
@@ -423,32 +471,6 @@ const BusinessSettingsPage: React.FC = () => {
                             Copy to All
                           </button>
                         )}
-                      </div>
-                      <div className="flex gap-1 items-center">
-                        <input
-                          type="time"
-                          value={businessData.businessHours[key]?.open || ''}
-                          onChange={(e) => handleHoursChange(key, 'open', e.target.value)}
-                          disabled={!isEditing || (!businessData.businessHours[key]?.open && !businessData.businessHours[key]?.close)}
-                          className={`w-full px-4 py-2 rounded-lg border ${
-                            isEditing
-                              ? 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
-                              : 'border-gray-200 bg-gray-50'
-                          } transition-all duration-200`}
-                        />
-                      </div>
-                      <div className="flex gap-1 items-center">
-                        <input
-                          type="time"
-                          value={businessData.businessHours[key]?.close || ''}
-                          onChange={(e) => handleHoursChange(key, 'close', e.target.value)}
-                          disabled={!isEditing || (!businessData.businessHours[key]?.open && !businessData.businessHours[key]?.close)}
-                          className={`w-full px-4 py-2 rounded-lg border ${
-                            isEditing
-                              ? 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
-                              : 'border-gray-200 bg-gray-50'
-                          } transition-all duration-200`}
-                        />
                       </div>
                     </div>
                   ))}
