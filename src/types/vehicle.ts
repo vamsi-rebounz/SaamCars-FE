@@ -24,7 +24,7 @@ export interface Vehicle {
   is_featured?: boolean;
   carfax_link?: string;
   is_bought_in_auction?: boolean;
-  buyer_name?: string;
+  seller_name?: string;
   bought_price?: number;
   repair_costs?: number;
   created_at?: string;

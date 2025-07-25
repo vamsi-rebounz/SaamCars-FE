@@ -143,36 +143,42 @@ const VehicleDetails: React.FC = () => {
 
 
       {/* Alert Messages */}
-      <AlertState
-        success={successMessage}
-        error={error}
-        variant="server"
-        onClose={() => {
-          setSuccessMessage(null);
-          setError(null);
-        }}
-      />
+      <div className="relative z-50">
+        <AlertState
+          success={successMessage}
+          error={error}
+          variant="server"
+          onClose={() => {
+            setSuccessMessage(null);
+            setError(null);
+          }}
+        />
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        {/* Header */}
-        <div className="mb-8">
-          <button
+        {/* Back to Inventory Button */}
+        <div className="mb-6">
+          <span
             onClick={handleBack}
-            className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
+            className="inline-flex items-center text-blue-600 font-semibold cursor-pointer hover:underline text-base"
+            role="button"
+            tabIndex={0}
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="h-5 w-5 mr-2" />
             Back to Inventory
-          </button>
-          
-          <div className="flex justify-between items-center flex-wrap gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                {vehicle.make} {vehicle.model} {vehicle.year}
-              </h1>
-              <div className="flex items-center gap-4 mt-2">
-                <p className="text-gray-600">VIN: {vehicle.vin || 'N/A'}</p>
-                <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
+          </span>
+        </div>
+
+        {/* Summary Card */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+            {/* Top left: Make/Model/Year */}
+            <div className="col-span-1 flex flex-col gap-0 justify-center">
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold text-gray-900 truncate font-sans">
+                  {vehicle.make} {vehicle.model}
+                </h1>
+                <span className={`font-semibold px-3 py-1 rounded text-sm shadow-md font-sans ${
                   vehicle.status === 'available' ? 'bg-green-100 text-green-800' :
                   vehicle.status === 'sold' ? 'bg-red-100 text-red-800' :
                   vehicle.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
@@ -182,306 +188,252 @@ const VehicleDetails: React.FC = () => {
                   {vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
                 </span>
               </div>
+              <div className="text-base font-medium text-gray-500 leading-tight font-sans">{vehicle.year}</div>
             </div>
-            
-            <div className="flex items-center gap-3">
-              {vehicle.carfax_link && (
-                <a
-                  href={vehicle.carfax_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center bg-white text-blue-600 px-4 py-2 rounded border border-blue-600 hover:bg-blue-50 transition-colors"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Carfax Report
-                </a>
+            {/* Top center: empty for spacing */}
+            <div className="col-span-1"></div>
+            {/* Top right: Price, Sold Price */}
+            <div className="col-span-1 flex flex-col items-end gap-2">
+              <div className="text-2xl font-bold text-blue-700">${vehicle.price.toLocaleString()}</div>
+              {vehicle.sold_price && (
+                <div className="text-lg font-semibold text-green-700">Sold: ${vehicle.sold_price.toLocaleString()}</div>
               )}
-              <button
-                onClick={handleEdit}
-                className="flex items-center bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </button>
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="flex items-center bg-white text-red-600 px-4 py-2 rounded border border-red-600 hover:bg-red-50 transition-colors"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </button>
+            </div>
+            {/* Row 2: Details */}
+            <div className="col-span-1 flex flex-col gap-1 border-t border-gray-100 pt-4 mt-2">
+              <span className="text-gray-700 text-sm font-sans">VIN: <span className="text-base font-semibold text-gray-900 font-sans">{vehicle.vin || 'N/A'}</span></span>
+              {vehicle.stock_number && <span className="text-gray-700 text-sm font-sans">Stock #: <span className="text-base font-semibold text-gray-900 font-sans">{vehicle.stock_number}</span></span>}
+            </div>
+            <div className="col-span-1 flex flex-col gap-1 border-t border-gray-100 pt-4 mt-2">
+              <span className="text-gray-700 text-sm font-sans">Location: <span className="text-base font-semibold text-gray-900 font-sans">{vehicle.location || 'N/A'}</span></span>
+              <span className="text-gray-700 text-sm font-sans">Condition: <span className="text-base font-semibold text-gray-900 font-sans">{vehicle.condition || 'N/A'}</span></span>
+            </div>
+            <div className="col-span-1 flex flex-col gap-2 items-end border-t border-gray-100 pt-4 mt-2 min-w-[180px]">
+              <span className="text-gray-700 text-sm font-sans">Created: <span className="text-base font-semibold text-gray-900 font-sans">{vehicle.created_at ? new Date(vehicle.created_at).toLocaleDateString() : 'N/A'}</span></span>
+              <span className="text-gray-700 text-sm font-sans">Updated: <span className="text-base font-semibold text-gray-900 font-sans">{vehicle.updated_at ? new Date(vehicle.updated_at).toLocaleDateString() : 'N/A'}</span></span>
+              <div className="flex gap-2 mt-2">
+                <button onClick={handleEdit} className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 flex items-center text-sm"><Edit className="h-4 w-4 mr-2" />Edit</button>
+                {vehicle.carfax_link && (
+                  <a href={vehicle.carfax_link} target="_blank" rel="noopener noreferrer" className="flex items-center bg-white text-blue-600 px-3 py-2 rounded border border-blue-600 hover:bg-blue-50 text-sm">
+                    <FileText className="h-4 w-4 mr-1" /> Carfax
+                  </a>
+                )}
+                <button onClick={() => setShowDeleteModal(true)} className="bg-white text-red-600 px-3 py-2 rounded border border-red-600 hover:bg-red-50 flex items-center text-sm"><Trash2 className="h-4 w-4 mr-2" />Delete</button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Images Section */}
-        <div className="space-y-6">
+        {/* Image Gallery Card */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+              <span className="inline-block w-2 h-6 bg-blue-600 rounded mr-3"></span>
+              Images
+            </h2>
+            <div className="text-sm text-gray-500">
+              {vehicle?.images && vehicle.images.length > 0 && (
+                <span>Image {currentImageIndex + 1} of {vehicle.images.length}</span>
+              )}
+            </div>
+          </div>
+          {vehicle?.images && vehicle.images.length > 0 ? (
+            <div className="relative">
+              <div className="aspect-w-16 aspect-h-9 bg-gray-100 rounded-lg overflow-hidden">
+                {!imageErrors.has(currentImageIndex) ? (
+                  <img
+                    src={vehicle.images[currentImageIndex]}
+                    alt={`${vehicle.make} ${vehicle.model} - Image ${currentImageIndex + 1}`}
+                    className="w-full h-[400px] object-contain rounded-lg"
+                    onError={() => handleImageError(currentImageIndex)}
+                  />
+                ) : (
+                  <div className="w-full h-[400px] bg-gray-200 rounded-lg flex items-center justify-center">
+                    <ImageIcon className="h-16 w-16 text-gray-400" />
+                  </div>
+                )}
+              </div>
+              {vehicle.images.length > 1 && (
+                <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4">
+                  <button onClick={previousImage} className="bg-white/90 text-gray-800 p-2 rounded-full hover:bg-white transition-all shadow-lg" aria-label="Previous image"><ChevronLeft className="h-6 w-6" /></button>
+                  <button onClick={nextImage} className="bg-white/90 text-gray-800 p-2 rounded-full hover:bg-white transition-all shadow-lg" aria-label="Next image"><ChevronRight className="h-6 w-6" /></button>
+                </div>
+              )}
+              <div className="flex justify-center mt-4 space-x-2 overflow-x-auto py-2">
+                {vehicle.images.map((_, index) => (
+                  <button key={index} onClick={() => setCurrentImageIndex(index)} className={`w-2 h-2 rounded-full transition-all ${index === currentImageIndex ? 'bg-blue-600 w-8' : 'bg-gray-300 hover:bg-gray-400'}`} aria-label={`Go to image ${index + 1}`} />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <ImageIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No images available</p>
+            </div>
+          )}
+        </div>
+
+        {/* Purchase Details Card */}
+        {vehicle.purchase_details && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <span className="inline-block w-2 h-6 bg-blue-600 rounded mr-3"></span>
+              Purchase Details
+            </h2>
+            <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <dt className="text-sm font-medium text-gray-500">Bought in Auction</dt>
+                <dd className="text-sm font-semibold text-gray-900">{vehicle.purchase_details.is_bought_in_auction ? 'Yes' : 'No'}</dd>
+              </div>
+              {vehicle.purchase_details.seller_name && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <dt className="text-sm font-medium text-gray-500">Seller Name</dt>
+                  <dd className="text-sm font-semibold text-gray-900">{vehicle.purchase_details.seller_name}</dd>
+                </div>
+              )}
+              {vehicle.purchase_details.seller_email && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <dt className="text-sm font-medium text-gray-500">Seller Email</dt>
+                  <dd className="text-sm font-semibold text-gray-900">{vehicle.purchase_details.seller_email}</dd>
+                </div>
+              )}
+              {vehicle.purchase_details.seller_phone && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <dt className="text-sm font-medium text-gray-500">Seller Phone</dt>
+                  <dd className="text-sm font-semibold text-gray-900">{vehicle.purchase_details.seller_phone}</dd>
+                </div>
+              )}
+              {vehicle.purchase_details.bought_price !== undefined && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <dt className="text-sm font-medium text-gray-500">Bought Price</dt>
+                  <dd className="text-sm font-semibold text-gray-900">${vehicle.purchase_details.bought_price?.toLocaleString()}</dd>
+                </div>
+              )}
+              {vehicle.purchase_details.repair_costs !== undefined && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <dt className="text-sm font-medium text-gray-500">Repair Costs</dt>
+                  <dd className="text-sm font-semibold text-gray-900">${vehicle.purchase_details.repair_costs?.toLocaleString()}</dd>
+                </div>
+              )}
+              {vehicle.purchase_details.sold_price !== undefined && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <dt className="text-sm font-medium text-gray-500">Sold Price</dt>
+                  <dd className="text-sm font-semibold text-green-600">${vehicle.purchase_details.sold_price?.toLocaleString()}</dd>
+                </div>
+              )}
+            </dl>
+          </div>
+        )}
+
+        {/* Technical + Color Details Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {/* Technical Details Card */}
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                <span className="inline-block w-2 h-6 bg-blue-600 rounded mr-3"></span>
-                Images
-              </h2>
-              <div className="text-sm text-gray-500">
-                {vehicle?.images && vehicle.images.length > 0 && (
-                  <span>Image {currentImageIndex + 1} of {vehicle.images.length}</span>
-                )}
-              </div>
-            </div>
-            
-            {vehicle?.images && vehicle.images.length > 0 ? (
-              <div className="relative">
-                <div className="aspect-w-16 aspect-h-9 bg-gray-100 rounded-lg overflow-hidden">
-                  {!imageErrors.has(currentImageIndex) ? (
-                    <img
-                      src={vehicle.images[currentImageIndex]}
-                      alt={`${vehicle.make} ${vehicle.model} - Image ${currentImageIndex + 1}`}
-                      className="w-full h-[400px] object-contain rounded-lg"
-                      onError={() => handleImageError(currentImageIndex)}
-                    />
-                  ) : (
-                    <div className="w-full h-[400px] bg-gray-200 rounded-lg flex items-center justify-center">
-                      <ImageIcon className="h-16 w-16 text-gray-400" />
-                    </div>
-                  )}
-                </div>
-                
-                {vehicle.images.length > 1 && (
-                  <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4">
-                    <button
-                      onClick={previousImage}
-                      className="bg-white/90 text-gray-800 p-2 rounded-full hover:bg-white transition-all shadow-lg"
-                      aria-label="Previous image"
-                    >
-                      <ChevronLeft className="h-6 w-6" />
-                    </button>
-                    <button
-                      onClick={nextImage}
-                      className="bg-white/90 text-gray-800 p-2 rounded-full hover:bg-white transition-all shadow-lg"
-                      aria-label="Next image"
-                    >
-                      <ChevronRight className="h-6 w-6" />
-                    </button>
-                  </div>
-                )}
-                
-                <div className="flex justify-center mt-4 space-x-2 overflow-x-auto py-2">
-                  {vehicle.images.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentImageIndex(index)}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        index === currentImageIndex ? 'bg-blue-600 w-8' : 'bg-gray-300 hover:bg-gray-400'
-                      }`}
-                      aria-label={`Go to image ${index + 1}`}
-                    />
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <ImageIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No images available</p>
-              </div>
-            )}
-          </div>
-
-          {/* Vehicle Information */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Basic Vehicle Details */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                <span className="inline-block w-2 h-6 bg-blue-600 rounded mr-3"></span>
-                Basic Vehicle Details
-              </h2>
-              <dl className="space-y-3">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <span className="inline-block w-2 h-6 bg-blue-600 rounded mr-3"></span>
+              Technical Details
+            </h2>
+            <dl className="space-y-3">
+              {vehicle.engine && (
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt className="text-sm font-medium text-gray-500">Make & Model</dt>
-                  <dd className="text-sm font-semibold text-gray-900">{vehicle.make} {vehicle.model}</dd>
+                  <dt className="text-sm font-medium text-gray-500">Engine</dt>
+                  <dd className="text-sm font-semibold text-gray-900">{vehicle.engine}</dd>
                 </div>
+              )}
+              {vehicle.transmission && (
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt className="text-sm font-medium text-gray-500">Year</dt>
-                  <dd className="text-sm font-semibold text-gray-900">{vehicle.year}</dd>
+                  <dt className="text-sm font-medium text-gray-500">Transmission</dt>
+                  <dd className="text-sm font-semibold text-gray-900">{vehicle.transmission}</dd>
                 </div>
+              )}
+              {vehicle.fuel_type && (
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt className="text-sm font-medium text-gray-500">VIN</dt>
-                  <dd className="text-sm font-semibold text-gray-900">{vehicle.vin || 'N/A'}</dd>
+                  <dt className="text-sm font-medium text-gray-500">Fuel Type</dt>
+                  <dd className="text-sm font-semibold text-gray-900">{vehicle.fuel_type}</dd>
                 </div>
-                {vehicle.stock_number && (
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <dt className="text-sm font-medium text-gray-500">Stock Number</dt>
-                    <dd className="text-sm font-semibold text-gray-900">{vehicle.stock_number}</dd>
-                  </div>
-                )}
-                {vehicle.mileage && (
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <dt className="text-sm font-medium text-gray-500">Mileage</dt>
-                    <dd className="text-sm font-semibold text-gray-900">{vehicle.mileage.toLocaleString()} miles</dd>
-                  </div>
-                )}
-                {vehicle.location && (
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <dt className="text-sm font-medium text-gray-500">Location</dt>
-                    <dd className="text-sm font-semibold text-gray-900">{vehicle.location}</dd>
-                  </div>
-                )}
-                {vehicle.condition && (
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <dt className="text-sm font-medium text-gray-500">Condition</dt>
-                    <dd className="text-sm font-semibold text-gray-900">{vehicle.condition}</dd>
-                  </div>
-                )}
-                {vehicle.created_at && (
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <dt className="text-sm font-medium text-gray-500">Created</dt>
-                    <dd className="text-sm font-semibold text-gray-900">
-                      {new Date(vehicle.created_at).toLocaleDateString()}
-                    </dd>
-                  </div>
-                )}
-                {vehicle.updated_at && (
-                  <div className="flex justify-between items-center py-2">
-                    <dt className="text-sm font-medium text-gray-500">Last Updated</dt>
-                    <dd className="text-sm font-semibold text-gray-900">
-                      {new Date(vehicle.updated_at).toLocaleDateString()}
-                    </dd>
-                  </div>
-                )}
-              </dl>
-            </div>
-
-            {/* Price Details */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                <span className="inline-block w-2 h-6 bg-blue-600 rounded mr-3"></span>
-                Price Details
-              </h2>
-              <dl className="space-y-3">
+              )}
+              {vehicle.body_type && (
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt className="text-sm font-medium text-gray-500">List Price</dt>
-                  <dd className="text-sm font-semibold text-gray-900">${vehicle.price.toLocaleString()}</dd>
+                  <dt className="text-sm font-medium text-gray-500">Body Type</dt>
+                  <dd className="text-sm font-semibold text-gray-900">{vehicle.body_type}</dd>
                 </div>
-                {vehicle.sold_price && (
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <dt className="text-sm font-medium text-gray-500">Sold Price</dt>
-                    <dd className="text-sm font-semibold text-green-600">${vehicle.sold_price.toLocaleString()}</dd>
-                  </div>
-                )}
+              )}
+              {vehicle.mileage && (
                 <div className="flex justify-between items-center py-2">
-                  <dt className="text-sm font-medium text-gray-500">Status</dt>
-                  <dd>
-                    <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
-                      vehicle.status === 'available' ? 'bg-green-100 text-green-800' :
-                      vehicle.status === 'sold' ? 'bg-red-100 text-red-800' :
-                      vehicle.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      vehicle.status === 'reserved' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
-                    </span>
-                  </dd>
+                  <dt className="text-sm font-medium text-gray-500">Mileage</dt>
+                  <dd className="text-sm font-semibold text-gray-900">{vehicle.mileage.toLocaleString()} miles</dd>
                 </div>
-              </dl>
-            </div>
+              )}
+            </dl>
+          </div>
+          {/* Color Details Card */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <span className="inline-block w-2 h-6 bg-blue-600 rounded mr-3"></span>
+              Color Details
+            </h2>
+            <dl className="space-y-3">
+              {vehicle.exterior_color && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <dt className="text-sm font-medium text-gray-500">Exterior Color</dt>
+                  <dd className="text-sm font-semibold text-gray-900">{vehicle.exterior_color}</dd>
+                </div>
+              )}
+              {vehicle.interior_color && (
+                <div className="flex justify-between items-center py-2">
+                  <dt className="text-sm font-medium text-gray-500">Interior Color</dt>
+                  <dd className="text-sm font-semibold text-gray-900">{vehicle.interior_color}</dd>
+                </div>
+              )}
+            </dl>
+          </div>
+        </div>
 
-            {/* Technical Details */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                <span className="inline-block w-2 h-6 bg-blue-600 rounded mr-3"></span>
-                Technical Details
-              </h2>
-              <dl className="space-y-3">
-                {vehicle.engine && (
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <dt className="text-sm font-medium text-gray-500">Engine</dt>
-                    <dd className="text-sm font-semibold text-gray-900">{vehicle.engine}</dd>
-                  </div>
-                )}
-                {vehicle.transmission && (
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <dt className="text-sm font-medium text-gray-500">Transmission</dt>
-                    <dd className="text-sm font-semibold text-gray-900">{vehicle.transmission}</dd>
-                  </div>
-                )}
-                {vehicle.fuel_type && (
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <dt className="text-sm font-medium text-gray-500">Fuel Type</dt>
-                    <dd className="text-sm font-semibold text-gray-900">{vehicle.fuel_type}</dd>
-                  </div>
-                )}
-                {vehicle.body_type && (
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <dt className="text-sm font-medium text-gray-500">Body Type</dt>
-                    <dd className="text-sm font-semibold text-gray-900">{vehicle.body_type}</dd>
-                  </div>
-                )}
-                {vehicle.exterior_color && (
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <dt className="text-sm font-medium text-gray-500">Exterior Color</dt>
-                    <dd className="text-sm font-semibold text-gray-900">{vehicle.exterior_color}</dd>
-                  </div>
-                )}
-                {vehicle.interior_color && (
-                  <div className="flex justify-between items-center py-2">
-                    <dt className="text-sm font-medium text-gray-500">Interior Color</dt>
-                    <dd className="text-sm font-semibold text-gray-900">{vehicle.interior_color}</dd>
-                  </div>
-                )}
-              </dl>
+        {/* Features Card */}
+        {vehicle.features && vehicle.features.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <span className="inline-block w-2 h-6 bg-blue-600 rounded mr-3"></span>
+              Features
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {vehicle.features.map((feature, index) => (
+                <div key={index} className="flex items-center">
+                  <svg className="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-gray-700">{feature}</span>
+                </div>
+              ))}
             </div>
           </div>
+        )}
 
-          {/* Description */}
-          {vehicle.description && (
-            <div className="bg-white rounded-lg shadow p-6 mt-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                <span className="inline-block w-2 h-6 bg-blue-600 rounded mr-3"></span>
-                Description
-              </h2>
-              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{vehicle.description}</p>
+        {/* Tags Card */}
+        {vehicle.tags && vehicle.tags.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <span className="inline-block w-2 h-6 bg-blue-600 rounded mr-3"></span>
+              Tags
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {vehicle.tags.map((tag, index) => (
+                <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">{tag}</span>
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Features */}
-          {vehicle.features && vehicle.features.length > 0 && (
-            <div className="bg-white rounded-lg shadow p-6 mt-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                <span className="inline-block w-2 h-6 bg-blue-600 rounded mr-3"></span>
-                Features
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {vehicle.features.map((feature, index) => (
-                  <div key={index} className="flex items-center">
-                    <svg className="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span className="text-gray-700">{feature}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Tags */}
-          {vehicle.tags && vehicle.tags.length > 0 && (
-            <div className="bg-white rounded-lg shadow p-6 mt-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                <span className="inline-block w-2 h-6 bg-blue-600 rounded mr-3"></span>
-                Tags
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {vehicle.tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Description Card */}
+        {vehicle.description && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <span className="inline-block w-2 h-6 bg-blue-600 rounded mr-3"></span>
+              Description
+            </h2>
+            <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{vehicle.description}</p>
+          </div>
+        )}
 
         {/* Edit Vehicle Modal */}
         {showEditModal && vehicle && (
@@ -535,7 +487,7 @@ const VehicleDetails: React.FC = () => {
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && (
-          <div className="fixed z-10 inset-0 overflow-y-auto">
+          <div className="fixed z-50 inset-0 overflow-y-auto">
             <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
               <div className="fixed inset-0 transition-opacity" aria-hidden="true">
                 <div className="absolute inset-0 bg-gray-500 opacity-75"></div>

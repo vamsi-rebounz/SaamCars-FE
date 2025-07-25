@@ -64,7 +64,9 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
     is_featured: false,
     sold_price: String(initialData?.sold_price || ''),
     is_bought_in_auction: false,
-    buyer_name: '',
+    seller_name: '',
+    seller_email: '',
+    seller_phone: '',
     bought_price: '',
     repair_costs: ''
   });
@@ -84,6 +86,7 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
 
   useEffect(() => {
     if (initialData) {
+      const purchase = initialData.purchase_details || {};
       setFormData({
         make: initialData.make,
         model: initialData.model,
@@ -107,11 +110,13 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
         location: initialData.location || '',
         stock_number: initialData.stock_number || '',
         is_featured: initialData.is_featured || false,
-        sold_price: String(initialData.sold_price || ''),
-        is_bought_in_auction: initialData.is_bought_in_auction || false,
-        buyer_name: initialData.buyer_name || '',
-        bought_price: initialData.bought_price ? String(initialData.bought_price) : '',
-        repair_costs: initialData.repair_costs ? String(initialData.repair_costs) : ''
+        sold_price: String(purchase.sold_price ?? initialData.sold_price ?? ''),
+        is_bought_in_auction: purchase.is_bought_in_auction ?? initialData.is_bought_in_auction ?? false,
+        seller_name: purchase.seller_name ?? initialData.seller_name ?? '',
+        seller_email: purchase.seller_email ?? initialData.seller_email ?? '',
+        seller_phone: purchase.seller_phone ?? initialData.seller_phone ?? '',
+        bought_price: purchase.bought_price !== undefined ? String(purchase.bought_price) : (initialData.bought_price !== undefined ? String(initialData.bought_price) : ''),
+        repair_costs: purchase.repair_costs !== undefined ? String(purchase.repair_costs) : (initialData.repair_costs !== undefined ? String(initialData.repair_costs) : ''),
       });
       
       // Load existing images for edit - handle both string array and object array formats
@@ -157,7 +162,9 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
         is_featured: false,
         sold_price: '',
         is_bought_in_auction: false,
-        buyer_name: '',
+        seller_name: '',
+        seller_email: '',
+        seller_phone: '',
         bought_price: '',
         repair_costs: ''
       });
@@ -518,14 +525,36 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
                 <label htmlFor="is_bought_in_auction" className="text-sm font-medium text-gray-700 select-none">Is vehicle bought in auction</label>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Buyer Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Seller Name</label>
                 <input
                   type="text"
-                  name="buyer_name"
-                  value={formData.buyer_name}
+                  name="seller_name"
+                  value={formData.seller_name}
                   onChange={handleInputChange}
                   placeholder="e.g., John Doe"
                   required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Seller Email</label>
+                <input
+                  type="email"
+                  name="seller_email"
+                  value={formData.seller_email}
+                  onChange={handleInputChange}
+                  placeholder="e.g., seller@email.com"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Seller Phone</label>
+                <input
+                  type="tel"
+                  name="seller_phone"
+                  value={formData.seller_phone}
+                  onChange={handleInputChange}
+                  placeholder="e.g., +1 555-123-4567"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 />
               </div>
