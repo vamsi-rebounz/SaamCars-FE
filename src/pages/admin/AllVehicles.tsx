@@ -8,9 +8,7 @@ import {
   Clock,
   DollarSign,
   Edit,
-  Filter,
   Image as ImageIcon,
-  Plus,
   RefreshCw,
   Search,
   Tag,
@@ -48,14 +46,12 @@ const AllVehicles: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [pagination, setPagination] = useState<Pagination | null>(null);
-  const [filterStatus, setFilterStatus] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [formSuccessMessage, setFormSuccessMessage] = useState<string | null>(null);
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<{ [key: string]: boolean }>({});
-  const [showAuctionVehicles, setShowAuctionVehicles] = useState(false);
   const [purchaseType, setPurchaseType] = useState('');
 
   // Debounce search term
@@ -75,8 +71,6 @@ const AllVehicles: React.FC = () => {
         sort_order: sortDirection,
         page: currentPage,
         limit: itemsPerPage,
-        ...(filterStatus && { status: filterStatus }),
-        ...(showAuctionVehicles ? { auction: true } : {}),
       };
       const response = await getInventory(filters);
       if (response.success && response.vehicles) {
@@ -94,7 +88,7 @@ const AllVehicles: React.FC = () => {
 
   useEffect(() => {
     fetchVehicles();
-  }, [debouncedSearch, sortField, sortDirection, currentPage, itemsPerPage, filterStatus, showAuctionVehicles]);
+  }, [debouncedSearch, sortField, sortDirection, currentPage, itemsPerPage]);
 
   const filteredVehicles = vehicles.filter(vehicle => {
     const searchString = `${vehicle.make} ${vehicle.model} ${vehicle.year} ${vehicle.vin}`.toLowerCase();
@@ -156,11 +150,6 @@ const AllVehicles: React.FC = () => {
 
   const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setItemsPerPage(Number(e.target.value));
-    setCurrentPage(1);
-  };
-
-  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFilterStatus(e.target.value);
     setCurrentPage(1);
   };
 
@@ -285,7 +274,7 @@ const AllVehicles: React.FC = () => {
 
         {/* Filters and Search */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Search */}
             <div className="flex-1 min-w-[220px]">
               <div className="relative">
@@ -301,31 +290,14 @@ const AllVehicles: React.FC = () => {
                 />
               </div>
             </div>
-            {/* Vehicle status */}
+            {/* Purchase type */}
             <div className="flex items-center min-w-[180px]">
-              <Filter className="h-5 w-5 text-gray-400 mr-2" />
               <select
-                value={filterStatus}
-                onChange={handleFilterChange}
-                className="block w-full pl-4 pr-8 py-2 text-sm border-b-[1.5px] border-blue-600 rounded-none bg-transparent focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors"
-              >
-                <option value="" disabled>Vehicle status</option>
-                <option value="available">Available</option>
-                <option value="maintenance">Under Maintenance</option>
-                <option value="sold">Sold</option>
-                <option value="reserved">Reserved</option>
-                <option value="recently-bought">Under Inspection</option>
-              </select>
-            </div>
-            {/* Vehicle by purchase type */}
-            <div className="flex items-center min-w-[200px] w-full">
-              <select
-                id="purchase-type-filter"
                 value={purchaseType}
                 onChange={e => setPurchaseType(e.target.value)}
                 className="block w-full pl-4 pr-8 py-2 text-sm border-b-[1.5px] border-blue-600 rounded-none bg-transparent focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors"
               >
-                <option value="" disabled>Purchase type</option>
+                <option value="">All</option>
                 <option value="auction">Bought in Auction</option>
                 <option value="individual">Bought from Individual</option>
               </select>
