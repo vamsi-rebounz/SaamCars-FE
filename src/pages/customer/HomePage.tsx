@@ -63,15 +63,9 @@ const HomePage: React.FC = () => {
     fetchFeatured();
   }, []);
 
-  const filteredModelOptions = makeOptions.length && searchMake
-    ? getUniqueCaseInsensitive(featuredVehicles.filter((v: Vehicle) => v.make && v.make.toLowerCase() === searchMake.toLowerCase()).map((v: Vehicle) => v.model).filter(Boolean))
-    : getUniqueCaseInsensitive(featuredVehicles.map((v: Vehicle) => v.model).filter(Boolean));
-
-  const filteredYearOptions = searchMake && searchModel
-    ? Array.from(new Set(featuredVehicles.filter((v: Vehicle) => v.make && v.make.toLowerCase() === searchMake.toLowerCase() && v.model && v.model.toLowerCase() === searchModel.toLowerCase()).map((v: Vehicle) => v.year).filter(Boolean))).sort((a, b) => b - a).map(String)
-    : searchMake
-      ? Array.from(new Set(featuredVehicles.filter((v: Vehicle) => v.make && v.make.toLowerCase() === searchMake.toLowerCase()).map((v: Vehicle) => v.year).filter(Boolean))).sort((a, b) => b - a).map(String)
-      : Array.from(new Set(featuredVehicles.map((v: Vehicle) => v.year).filter(Boolean))).sort((a, b) => b - a).map(String);
+  // Independent options for make, model, year
+  const modelOptions = getUniqueCaseInsensitive(featuredVehicles.map((v: Vehicle) => v.model).filter(Boolean));
+  const yearOptions = Array.from(new Set(featuredVehicles.map((v: Vehicle) => v.year).filter(Boolean))).sort((a, b) => b - a).map(String);
 
   return (
     <div>
@@ -121,11 +115,7 @@ const HomePage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full">
                 <select
                   value={searchMake}
-                  onChange={e => {
-                    setSearchMake(e.target.value);
-                    setSearchModel('');
-                    setSearchYear('');
-                  }}
+                  onChange={e => setSearchMake(e.target.value)}
                   className="w-full px-4 py-2 border-b-[1.5px] border-blue-600 rounded-none bg-transparent placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors text-base"
                 >
                   <option value="">Vehicle Make</option>
@@ -135,15 +125,11 @@ const HomePage: React.FC = () => {
                 </select>
                 <select
                   value={searchModel}
-                  onChange={e => {
-                    setSearchModel(e.target.value);
-                    setSearchYear('');
-                  }}
+                  onChange={e => setSearchModel(e.target.value)}
                   className="w-full px-4 py-2 border-b-[1.5px] border-blue-600 rounded-none bg-transparent placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors text-base"
-                  disabled={!searchMake}
                 >
                   <option value="">Vehicle Model</option>
-                  {filteredModelOptions.map(model => (
+                  {modelOptions.map(model => (
                     <option key={model} value={model}>{model}</option>
                   ))}
                 </select>
@@ -151,10 +137,9 @@ const HomePage: React.FC = () => {
                   value={searchYear}
                   onChange={e => setSearchYear(e.target.value)}
                   className="w-full px-4 py-2 border-b-[1.5px] border-blue-600 rounded-none bg-transparent placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors text-base"
-                  disabled={!searchModel}
                 >
                   <option value="">Vehicle Year</option>
-                  {filteredYearOptions.map(year => (
+                  {yearOptions.map(year => (
                     <option key={year} value={year}>{year}</option>
                   ))}
                 </select>

@@ -630,11 +630,11 @@ const ManualPaymentModal = ({
                       required
                     >
                       <option value="cash">Cash</option>
-                      <option value="check">Check</option>
-                      <option value="bank_transfer">Bank Transfer</option>
-                      <option value="credit_card">Credit Card</option>
-                      <option value="debit_card">Debit Card</option>
-                      <option value="other">Other</option>
+                      <option value="check" disabled>Check</option>
+                      <option value="bank_transfer" disabled>Bank Transfer</option>
+                      <option value="credit_card" disabled>Credit Card</option>
+                      <option value="debit_card" disabled>Debit Card</option>
+                      <option value="other" disabled>Other</option>
                     </select>
                   </div>
 
@@ -669,8 +669,8 @@ const ManualPaymentModal = ({
                       required
                     >
                       <option value="completed">Completed</option>
-                      <option value="pending">Pending</option>
-                      <option value="failed">Failed</option>
+                      <option value="pending" disabled>Pending</option>
+                      <option value="failed" disabled>Failed</option>
                     </select>
                   </div>
 
