@@ -22,11 +22,6 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const handleDemoLogin = (demoEmail: string, demoPassword: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -116,47 +111,6 @@ const LoginPage: React.FC = () => {
               </button>
             </div>
           </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Demo Accounts</span>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-3">
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-3">Try these demo accounts:</p>
-                
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => handleDemoLogin('user@example.com', 'password')}
-                    className="w-full flex justify-between items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <span className="font-medium">Customer Account</span>
-                    <span className="text-xs text-gray-500">user@example.com</span>
-                  </button>
-                  
-                  <button
-                    type="button"
-                    onClick={() => handleDemoLogin('admin@saamcars.com', 'password')}
-                    className="w-full flex justify-between items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <span className="font-medium">Admin Account</span>
-                    <span className="text-xs text-gray-500">admin@saamcars.com</span>
-                  </button>
-                </div>
-                
-                <p className="text-xs text-gray-500 mt-2">
-                  Password for both accounts: <span className="font-mono font-medium">password</span>
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

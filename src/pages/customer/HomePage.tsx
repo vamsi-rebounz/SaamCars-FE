@@ -1,39 +1,61 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Shield, ThumbsUp, Clock, ArrowRight } from 'lucide-react';
 import { getInventory } from '../../services/inventory';
 import VehicleCard from '../../components/VehicleCard';
+import { Vehicle } from '../../types/vehicle';
+
+// Helper to get unique values case-insensitively, preserving first occurrence's case
+function getUniqueCaseInsensitive(arr: string[]) {
+  const seen = new Set();
+  const result: string[] = [];
+  for (const item of arr) {
+    const lower = item.toLowerCase();
+    if (!seen.has(lower)) {
+      seen.add(lower);
+      result.push(item);
+    }
+  }
+  return result;
+}
 
 const HomePage: React.FC = () => {
-  const [featuredVehicles, setFeaturedVehicles] = useState<any[]>([]);
+  const [featuredVehicles, setFeaturedVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Remove all state and logic related to the search section
-
-  // Removed unused modelOptions, priceRanges, and navigate
+  const [searchMake, setSearchMake] = useState('');
+  const [searchModel, setSearchModel] = useState('');
+  const [makeOptions, setMakeOptions] = useState<string[]>([]);
+  const [searchYear, setSearchYear] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchFeatured = async () => {
       setLoading(true);
       setError(null);
       try {
-        // Fetch vehicles with 'Featured' tag, sorted by date_added descending
+        // Fetch vehicles and filterStats
         const response = await getInventory({ 
-          limit: 3, 
+          limit: 1000, // fetch more to get all makes/models/years
           page: 1, 
           sort_by: 'date_added', 
           sort_order: 'desc'
         });
         if (response.success && response.vehicles) {
-          setFeaturedVehicles(response.vehicles);
+          setFeaturedVehicles(response.vehicles.slice(0, 3));
+          // Extract unique makes, models, years (case-insensitive)
+          const uniqueMakes = getUniqueCaseInsensitive(response.vehicles.map((v: Vehicle) => v.make).filter(Boolean));
+          setMakeOptions(uniqueMakes);
+          // No need to setModelOptions or setYearOptions here, handled below
         } else {
           setFeaturedVehicles([]);
+          setMakeOptions([]);
           setError('No vehicles found.');
         }
       } catch (err) {
         setError('Failed to load featured vehicles.');
         setFeaturedVehicles([]);
+        setMakeOptions([]);
       } finally {
         setLoading(false);
       }
@@ -41,7 +63,15 @@ const HomePage: React.FC = () => {
     fetchFeatured();
   }, []);
 
-  // Remove the search handler
+  const filteredModelOptions = makeOptions.length && searchMake
+    ? getUniqueCaseInsensitive(featuredVehicles.filter((v: Vehicle) => v.make && v.make.toLowerCase() === searchMake.toLowerCase()).map((v: Vehicle) => v.model).filter(Boolean))
+    : getUniqueCaseInsensitive(featuredVehicles.map((v: Vehicle) => v.model).filter(Boolean));
+
+  const filteredYearOptions = searchMake && searchModel
+    ? Array.from(new Set(featuredVehicles.filter((v: Vehicle) => v.make && v.make.toLowerCase() === searchMake.toLowerCase() && v.model && v.model.toLowerCase() === searchModel.toLowerCase()).map((v: Vehicle) => v.year).filter(Boolean))).sort((a, b) => b - a).map(String)
+    : searchMake
+      ? Array.from(new Set(featuredVehicles.filter((v: Vehicle) => v.make && v.make.toLowerCase() === searchMake.toLowerCase()).map((v: Vehicle) => v.year).filter(Boolean))).sort((a, b) => b - a).map(String)
+      : Array.from(new Set(featuredVehicles.map((v: Vehicle) => v.year).filter(Boolean))).sort((a, b) => b - a).map(String);
 
   return (
     <div>
@@ -75,19 +105,74 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Remove the search section JSX */}
-
-      {/* Search Results or Featured Vehicles */}
-      {/* The search results section is removed as per the edit hint. */}
-
       {/* Featured Vehicles */}
       <section className="section bg-gray-50">
         <div className="container-custom">
-          <div className="text-center mb-12">
-            <h2 className="heading-lg mb-4">Featured Vehicles</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Explore our handpicked selection of premium pre-owned vehicles, each thoroughly inspected and ready for the road.
+          <section className="quote-section" style={{backgroundColor: 'transparent', color: '#111', padding: '50px 20px', textAlign: 'center', fontFamily: `'Helvetica Neue', Arial, sans-serif`}}>
+            <h2 style={{fontSize: '2rem', fontWeight: 600, marginBottom: 10}}>
+              "Your journey begins with the right car – drive your dream today."
+            </h2>
+            <p style={{fontSize: '1rem', color: '#111', marginTop: 10}}>
+              Driven by trust, powered by passion.
             </p>
+          </section>
+          <div className="w-full mb-12">
+            <div className="bg-white border border-blue-200 rounded-xl shadow-md p-6 mb-8 w-full">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full">
+                <select
+                  value={searchMake}
+                  onChange={e => {
+                    setSearchMake(e.target.value);
+                    setSearchModel('');
+                    setSearchYear('');
+                  }}
+                  className="w-full px-4 py-2 border-b-[1.5px] border-blue-600 rounded-none bg-transparent placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors text-base"
+                >
+                  <option value="">Vehicle Make</option>
+                  {makeOptions.map(make => (
+                    <option key={make} value={make}>{make}</option>
+                  ))}
+                </select>
+                <select
+                  value={searchModel}
+                  onChange={e => {
+                    setSearchModel(e.target.value);
+                    setSearchYear('');
+                  }}
+                  className="w-full px-4 py-2 border-b-[1.5px] border-blue-600 rounded-none bg-transparent placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors text-base"
+                  disabled={!searchMake}
+                >
+                  <option value="">Vehicle Model</option>
+                  {filteredModelOptions.map(model => (
+                    <option key={model} value={model}>{model}</option>
+                  ))}
+                </select>
+                <select
+                  value={searchYear}
+                  onChange={e => setSearchYear(e.target.value)}
+                  className="w-full px-4 py-2 border-b-[1.5px] border-blue-600 rounded-none bg-transparent placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors text-base"
+                  disabled={!searchModel}
+                >
+                  <option value="">Vehicle Year</option>
+                  {filteredYearOptions.map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+                <button
+                  className="w-full px-6 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors text-base"
+                  onClick={() => {
+                    const params = new URLSearchParams();
+                    if (searchMake) params.append('make', searchMake);
+                    if (searchModel) params.append('model', searchModel);
+                    if (searchYear) params.append('year', searchYear);
+                    navigate(`/inventory?${params.toString()}`);
+                  }}
+                  disabled={!searchMake}
+                >
+                  View Your Matching Car
+                </button>
+              </div>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[220px]">
             {loading ? (

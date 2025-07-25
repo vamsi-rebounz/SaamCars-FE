@@ -64,6 +64,11 @@ const InventoryPage: React.FC = () => {
     fetchVehicles();
   }, [filters]);
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Handle filter changes
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const { name, value } = e.target;
