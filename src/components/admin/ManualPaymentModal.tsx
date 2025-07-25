@@ -93,10 +93,10 @@ const ManualPaymentModal = ({
 
   // Initialize form with existing payment data if editing
   useEffect(() => {
-    if (isOpen && editingPayment && vehicles.length > 0) {
+    if (isOpen && editingPayment) {
       initializeFormWithPayment(editingPayment);
     }
-  }, [isOpen, editingPayment, vehicles]);
+  }, [isOpen, editingPayment]);
 
   const initializeFormWithPayment = (payment: Payment) => {
     // Map backend payment type to frontend form type
@@ -157,65 +157,11 @@ const ManualPaymentModal = ({
     }
     
     // Set selected vehicle if vehicle_id exists
-    if (payment.vehicle_id) {
+    if (payment.vehicle_id && vehicles.length > 0) {
       // First, try to find the vehicle in the vehicles list
       const vehicle = vehicles.find(v => v.id === payment.vehicle_id || v.id.toString() === payment.vehicle_id?.toString());
       if (vehicle) {
         setSelectedVehicle(vehicle);
-      } else {
-        // Create a virtual vehicle object from payment data for display
-        if (payment.vehicle) {
-          const virtualVehicle = {
-            id: payment.vehicle_id,
-            make: payment.vehicle.make || 'Unknown',
-            model: payment.vehicle.model || 'Unknown',
-            year: payment.vehicle.year || 'Unknown',
-            stock_number: payment.vehicle.stockNumber || 'N/A',
-            vin: payment.vehicle.vin || 'N/A',
-            price: 0, // Default price for virtual vehicle
-            status: payment.vehicle.status || 'unknown',
-            images: [],
-            mileage: 0,
-            exterior_color: 'Unknown',
-            transmission: 'Unknown',
-            fuel_type: 'Unknown',
-            body_type: 'Unknown'
-          };
-          // Ensure 'year' is a number for Vehicle type compatibility
-          if (typeof virtualVehicle.year === 'string') {
-            virtualVehicle.year = parseInt(virtualVehicle.year) || 0;
-          }
-          setSelectedVehicle(virtualVehicle as Vehicle);
-        } else {
-          // If no vehicle data in payment, create a basic virtual vehicle
-          const basicVirtualVehicle = {
-            id: payment.vehicle_id,
-            make: 'Unknown',
-            model: 'Unknown',
-            year: 'Unknown',
-            stock_number: 'N/A',
-            vin: 'N/A',
-            price: 0,
-            status: 'unknown',
-            images: [],
-            mileage: 0,
-            exterior_color: 'Unknown',
-            transmission: 'Unknown',
-            fuel_type: 'Unknown',
-            body_type: 'Unknown'
-          };
-          // Ensure 'year' is a number for Vehicle type compatibility
-          let yearValue: number = 0;
-          if (typeof basicVirtualVehicle.year === 'string') {
-            yearValue = parseInt(basicVirtualVehicle.year) || 0;
-          } else if (typeof basicVirtualVehicle.year === 'number') {
-            yearValue = basicVirtualVehicle.year;
-          }
-          setSelectedVehicle({
-            ...basicVirtualVehicle,
-            year: yearValue
-          } as unknown as Vehicle);
-        }
       }
     }
     // Go directly to payment step when editing

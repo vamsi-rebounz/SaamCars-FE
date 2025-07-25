@@ -7,17 +7,20 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
   className?: string;
 }
 
+let loggedLucideIcons = false;
+
 const Icon: React.FC<IconProps> = ({ name, size = 24, className = '', ...props }) => {
   const LucideIcon = LucideIcons[name];
+  console.log('Rendering Icon:', name, LucideIcon);
 
-  if (
-    !LucideIcon ||
-    typeof LucideIcon !== 'function' ||
-    !LucideIcon.name ||
-    LucideIcon.name[0] !== LucideIcon.name[0].toUpperCase()
-  ) {
+  if (!loggedLucideIcons) {
+    console.log('Available LucideIcons:', Object.keys(LucideIcons));
+    loggedLucideIcons = true;
+  }
+
+  if (!LucideIcon || typeof LucideIcon !== 'function') {
     console.warn(`Icon "${name}" is not a valid React component in lucide-react`);
-    return null;
+    return <span style={{color: 'red', fontSize: size}}>?</span>;
   }
 
   const IconComponent = LucideIcon as React.ComponentType<any>;
