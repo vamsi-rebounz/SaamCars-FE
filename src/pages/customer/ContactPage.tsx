@@ -105,29 +105,32 @@ const ContactPage: React.FC = () => {
       {/* Contact Information */}
       <section className="py-12">
         <div className="container-custom">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            {/* Phone & Email Card */}
             <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-blue-700 mb-4">
-                <Phone className="h-8 w-8" />
+              <div className="flex justify-center gap-6 mb-4">
+                <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-blue-700">
+                  <Phone className="h-8 w-8" />
+                </div>
+                <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-blue-700">
+                  <Mail className="h-8 w-8" />
+                </div>
               </div>
-              <h3 className="text-lg font-semibold mb-2">Phone</h3>
-              <p className="text-gray-600 mb-2">Sales Department</p>
-              <a href={`tel:${businessData?.phone}`} className="text-blue-700 font-medium">
-                {businessData?.phone || '(555) 123-4567'}
-              </a>
-            </div>
-            
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-blue-700 mb-4">
-                <Mail className="h-8 w-8" />
+              <h3 className="text-lg font-semibold mb-2">Phone & Email</h3>
+              <div className="mb-2">
+                <span className="block text-gray-600">Sales Department</span>
+                <a href={`tel:${businessData?.phone}`} className="text-blue-700 font-medium block">
+                  {businessData?.phone || '(555) 123-4567'}
+                </a>
               </div>
-              <h3 className="text-lg font-semibold mb-2">Email</h3>
-              <p className="text-gray-600 mb-2">General Inquiries</p>
-              <a href={`mailto:${businessData?.email}`} className="text-blue-700 font-medium">
-                {businessData?.email || 'info@saamcars.com'}
-              </a>
+              <div>
+                <span className="block text-gray-600">General Inquiries</span>
+                <a href={`mailto:${businessData?.email}`} className="text-blue-700 font-medium block">
+                  {businessData?.email || 'info@saamcars.com'}
+                </a>
+              </div>
             </div>
-            
+            {/* Location Card */}
             <div className="bg-white p-6 rounded-lg shadow-md text-center">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-blue-700 mb-4">
                 <MapPin className="h-8 w-8" />
@@ -147,7 +150,7 @@ const ContactPage: React.FC = () => {
                 Get Directions
               </a>
             </div>
-            
+            {/* Business Hours Card */}
             <div className="bg-white p-6 rounded-lg shadow-md text-center">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-blue-700 mb-4">
                 <Clock className="h-8 w-8" />
