@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, Save, Edit, X, Shield, Calendar, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { User, Mail, Phone, Save, Edit, X, Shield, Calendar, CheckCircle, AlertCircle, Clock, Send } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { updateProfile } from '../../services/auth';
+import { updateProfile, requestEmailVerification } from '../../services/auth';
 
 const AdminProfile: React.FC = () => {
   const { user, setUser } = useAuth();
@@ -9,6 +9,8 @@ const AdminProfile: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [verificationLoading, setVerificationLoading] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
   
   const [profileData, setProfileData] = useState({
     firstName: '',
@@ -94,6 +96,26 @@ const AdminProfile: React.FC = () => {
     setError(null);
   };
 
+  const handleVerifyEmail = async () => {
+    setVerificationLoading(true);
+    setVerificationMessage(null);
+    setError(null);
+
+    try {
+      const result = await requestEmailVerification();
+      if (result.success) {
+        setVerificationMessage('Verification email sent successfully! Please check your inbox.');
+        setTimeout(() => setVerificationMessage(null), 5000);
+      } else {
+        setError(result.message || 'Failed to send verification email');
+      }
+    } catch (err) {
+      setError('Failed to send verification email. Please try again.');
+    } finally {
+      setVerificationLoading(false);
+    }
+  };
+
   if (!user) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -166,6 +188,19 @@ const AdminProfile: React.FC = () => {
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium">Profile updated successfully!</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {verificationMessage && (
+        <div className="mb-6 bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 rounded-r-lg animate-slide-in-right">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Send className="h-5 w-5 text-blue-400" aria-hidden="true" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium">{verificationMessage}</p>
             </div>
           </div>
         </div>
@@ -321,9 +356,21 @@ const AdminProfile: React.FC = () => {
                       />
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                     </div>
-                    <p className="mt-2 text-sm text-gray-500">
-                      Email cannot be changed. Contact support if needed.
-                    </p>
+                    <div className="mt-2 flex items-center justify-between">
+                      <p className="text-sm text-gray-500">
+                        Email cannot be changed. Contact support if needed.
+                      </p>
+                      {!profileData.emailVerified && (
+                        <button
+                          onClick={handleVerifyEmail}
+                          disabled={verificationLoading}
+                          className="inline-flex items-center px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Send className="h-3 w-3 mr-1" />
+                          {verificationLoading ? 'Sending...' : 'Verify Email'}
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div>

@@ -30,6 +30,7 @@
     "xmlbuilder": "^15.1.1"
   },
   "devDependencies": {
+    "@types/node": "^24.1.0",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@typescript-eslint/eslint-plugin": "^6.0.0",

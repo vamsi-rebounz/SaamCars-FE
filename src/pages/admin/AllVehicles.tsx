@@ -15,6 +15,7 @@ import {
   Trash2,
   X
 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AlertState from '../../components/ErrorState';
@@ -53,24 +54,57 @@ const AllVehicles: React.FC = () => {
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<{ [key: string]: boolean }>({});
   const [purchaseType, setPurchaseType] = useState('');
+  
+  // Price range filters
+  const [minPrice, setMinPrice] = useState<number | undefined>(undefined);
+  const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined);
+  const [minPurchaseCost, setMinPurchaseCost] = useState<number | undefined>(undefined);
+  const [maxPurchaseCost, setMaxPurchaseCost] = useState<number | undefined>(undefined);
+  const [minAdditionalCosts, setMinAdditionalCosts] = useState<number | undefined>(undefined);
+  const [maxAdditionalCosts, setMaxAdditionalCosts] = useState<number | undefined>(undefined);
+  const [minSoldPrice, setMinSoldPrice] = useState<number | undefined>(undefined);
+  const [maxSoldPrice, setMaxSoldPrice] = useState<number | undefined>(undefined);
+  const [minProfit, setMinProfit] = useState<number | undefined>(undefined);
+  const [maxProfit, setMaxProfit] = useState<number | undefined>(undefined);
+  
+  // Filter visibility state
+  const [showFilters, setShowFilters] = useState(false);
 
   // Debounce search term
   const debouncedSearch = useDebounce(searchInput, 500);
 
   const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  // Check if user is admin
+  const isAdmin = user?.role === 'admin';
 
   // Fetch vehicles from API
   const fetchVehicles = async () => {
     setLoading(true);
     setError(null);
     try {
-      const validSortFields = ['date_added', 'price', 'year', 'mileage', 'make'];
+      const validSortFields = isAdmin 
+        ? ['date_added', 'price', 'year', 'mileage', 'make', 'bought_price', 'repair_costs', 'sold_price', 'profit']
+        : ['date_added', 'price', 'year', 'mileage', 'make'];
+      
       const filters = {
         search: debouncedSearch,
         sort_by: validSortFields.includes(sortField) ? sortField as any : 'date_added',
         sort_order: sortDirection,
         page: currentPage,
         limit: itemsPerPage,
+        ...(isAdmin && purchaseType && { purchase_type: purchaseType }),
+        ...(isAdmin && minPrice !== undefined && { min_price: minPrice }),
+        ...(isAdmin && maxPrice !== undefined && { max_price: maxPrice }),
+        ...(isAdmin && minPurchaseCost !== undefined && { min_purchase_cost: minPurchaseCost }),
+        ...(isAdmin && maxPurchaseCost !== undefined && { max_purchase_cost: maxPurchaseCost }),
+        ...(isAdmin && minAdditionalCosts !== undefined && { min_additional_costs: minAdditionalCosts }),
+        ...(isAdmin && maxAdditionalCosts !== undefined && { max_additional_costs: maxAdditionalCosts }),
+        ...(isAdmin && minSoldPrice !== undefined && { min_sold_price: minSoldPrice }),
+        ...(isAdmin && maxSoldPrice !== undefined && { max_sold_price: maxSoldPrice }),
+        ...(isAdmin && minProfit !== undefined && { min_profit: minProfit }),
+        ...(isAdmin && maxProfit !== undefined && { max_profit: maxProfit }),
       };
       const response = await getInventory(filters);
       if (response.success && response.vehicles) {
@@ -88,7 +122,7 @@ const AllVehicles: React.FC = () => {
 
   useEffect(() => {
     fetchVehicles();
-  }, [debouncedSearch, sortField, sortDirection, currentPage, itemsPerPage]);
+  }, [debouncedSearch, sortField, sortDirection, currentPage, itemsPerPage, purchaseType, minPrice, maxPrice, minPurchaseCost, maxPurchaseCost, minAdditionalCosts, maxAdditionalCosts, minSoldPrice, maxSoldPrice, minProfit, maxProfit]);
 
   const filteredVehicles = vehicles.filter(vehicle => {
     const searchString = `${vehicle.make} ${vehicle.model} ${vehicle.year} ${vehicle.vin}`.toLowerCase();
@@ -108,12 +142,24 @@ const AllVehicles: React.FC = () => {
   });
 
   const handleSort = (field: string) => {
+    // Restrict financial fields to admin users only
+    const financialFields = ['bought_price', 'repair_costs', 'sold_price', 'profit'];
+    if (financialFields.includes(field) && !isAdmin) {
+      return; // Prevent non-admin users from sorting by financial fields
+    }
+    
     const fieldMap: { [key: string]: string } = {
       make: 'make',
       year: 'year',
       price: 'price',
       mileage: 'mileage',
       created_at: 'date_added',
+      ...(isAdmin && {
+        bought_price: 'bought_price',
+        repair_costs: 'repair_costs',
+        sold_price: 'sold_price',
+        profit: 'profit',
+      }),
     };
     const apiField = fieldMap[field] || field;
     if (apiField === sortField) {
@@ -290,18 +336,20 @@ const AllVehicles: React.FC = () => {
                 />
               </div>
             </div>
-            {/* Purchase type */}
-            <div className="flex items-center min-w-[180px]">
-              <select
-                value={purchaseType}
-                onChange={e => setPurchaseType(e.target.value)}
-                className="block w-full pl-4 pr-8 py-2 text-sm border-b-[1.5px] border-blue-600 rounded-none bg-transparent focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors"
-              >
-                <option value="">All</option>
-                <option value="auction">Bought in Auction</option>
-                <option value="individual">Bought from Individual</option>
-              </select>
-            </div>
+            {/* Purchase type - Admin Only */}
+            {isAdmin && (
+              <div className="flex items-center min-w-[180px]">
+                <select
+                  value={purchaseType}
+                  onChange={e => setPurchaseType(e.target.value)}
+                  className="block w-full pl-4 pr-8 py-2 text-sm border-b-[1.5px] border-blue-600 rounded-none bg-transparent focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors"
+                >
+                  <option value="">All</option>
+                  <option value="auction">Bought in Auction</option>
+                  <option value="individual">Bought from Individual</option>
+                </select>
+              </div>
+            )}
             {/* Items per page */}
             <div className="flex items-center min-w-[160px] md:ml-4">
               <select
@@ -317,6 +365,318 @@ const AllVehicles: React.FC = () => {
               </select>
             </div>
           </div>
+
+          {/* Price Range Filters - Admin Only */}
+          {isAdmin && (
+            <div className="border-t border-gray-200 pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Financial Filters</h3>
+                <p className="text-sm text-gray-600 mt-1">Filter vehicles by financial metrics and price ranges</p>
+              </div>
+              <div className="flex items-center space-x-3">
+                {showFilters && (
+                  <button
+                    onClick={() => {
+                      setMinPrice(undefined);
+                      setMaxPrice(undefined);
+                      setMinPurchaseCost(undefined);
+                      setMaxPurchaseCost(undefined);
+                      setMinAdditionalCosts(undefined);
+                      setMaxAdditionalCosts(undefined);
+                      setMinSoldPrice(undefined);
+                      setMaxSoldPrice(undefined);
+                      setMinProfit(undefined);
+                      setMaxProfit(undefined);
+                    }}
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Clear All Filters
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                >
+                  {showFilters ? (
+                    <>
+                      <ChevronUp className="h-4 w-4 mr-2" />
+                      Hide Filters
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4 mr-2" />
+                      Show Filters
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {showFilters && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {/* List Price Range */}
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <div className="flex items-center mb-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                      <DollarSign className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900">List Price</h4>
+                      <p className="text-xs text-gray-500">Current selling price</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Minimum</label>
+                      <input
+                        type="number"
+                        placeholder="$0"
+                        value={minPrice || ''}
+                        onChange={(e) => setMinPrice(e.target.value ? Number(e.target.value) : undefined)}
+                        className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Maximum</label>
+                      <input
+                        type="number"
+                        placeholder="No limit"
+                        value={maxPrice || ''}
+                        onChange={(e) => setMaxPrice(e.target.value ? Number(e.target.value) : undefined)}
+                        className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Purchase Cost Range */}
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <div className="flex items-center mb-3">
+                    <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
+                      <DollarSign className="h-4 w-4 text-orange-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900">Purchase Cost</h4>
+                      <p className="text-xs text-gray-500">Cost to acquire vehicle</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Minimum</label>
+                      <input
+                        type="number"
+                        placeholder="$0"
+                        value={minPurchaseCost || ''}
+                        onChange={(e) => setMinPurchaseCost(e.target.value ? Number(e.target.value) : undefined)}
+                        className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Maximum</label>
+                      <input
+                        type="number"
+                        placeholder="No limit"
+                        value={maxPurchaseCost || ''}
+                        onChange={(e) => setMaxPurchaseCost(e.target.value ? Number(e.target.value) : undefined)}
+                        className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Costs Range */}
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <div className="flex items-center mb-3">
+                    <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
+                      <DollarSign className="h-4 w-4 text-yellow-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900">Additional Costs</h4>
+                      <p className="text-xs text-gray-500">Repair & maintenance costs</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Minimum</label>
+                      <input
+                        type="number"
+                        placeholder="$0"
+                        value={minAdditionalCosts || ''}
+                        onChange={(e) => setMinAdditionalCosts(e.target.value ? Number(e.target.value) : undefined)}
+                        className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Maximum</label>
+                      <input
+                        type="number"
+                        placeholder="No limit"
+                        value={maxAdditionalCosts || ''}
+                        onChange={(e) => setMaxAdditionalCosts(e.target.value ? Number(e.target.value) : undefined)}
+                        className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sold Price Range */}
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <div className="flex items-center mb-3">
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                      <DollarSign className="h-4 w-4 text-green-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900">Sold Price</h4>
+                      <p className="text-xs text-gray-500">Final sale price</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Minimum</label>
+                      <input
+                        type="number"
+                        placeholder="$0"
+                        value={minSoldPrice || ''}
+                        onChange={(e) => setMinSoldPrice(e.target.value ? Number(e.target.value) : undefined)}
+                        className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Maximum</label>
+                      <input
+                        type="number"
+                        placeholder="No limit"
+                        value={maxSoldPrice || ''}
+                        onChange={(e) => setMaxSoldPrice(e.target.value ? Number(e.target.value) : undefined)}
+                        className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Profit Range */}
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <div className="flex items-center mb-3">
+                    <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                      <DollarSign className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900">Profit</h4>
+                      <p className="text-xs text-gray-500">Calculated profit margin</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Minimum</label>
+                      <input
+                        type="number"
+                        placeholder="$0"
+                        value={minProfit || ''}
+                        onChange={(e) => setMinProfit(e.target.value ? Number(e.target.value) : undefined)}
+                        className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Maximum</label>
+                      <input
+                        type="number"
+                        placeholder="No limit"
+                        value={maxProfit || ''}
+                        onChange={(e) => setMaxProfit(e.target.value ? Number(e.target.value) : undefined)}
+                        className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Active Filters Summary */}
+            {(minPrice !== undefined || maxPrice !== undefined || minPurchaseCost !== undefined || maxPurchaseCost !== undefined || minAdditionalCosts !== undefined || maxAdditionalCosts !== undefined || minSoldPrice !== undefined || maxSoldPrice !== undefined || minProfit !== undefined || maxProfit !== undefined) && (
+              <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                      <Tag className="h-3 w-3 text-blue-600" />
+                    </div>
+                    <span className="text-sm font-medium text-blue-900">Active Filters:</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setMinPrice(undefined);
+                      setMaxPrice(undefined);
+                      setMinPurchaseCost(undefined);
+                      setMaxPurchaseCost(undefined);
+                      setMinAdditionalCosts(undefined);
+                      setMaxAdditionalCosts(undefined);
+                      setMinSoldPrice(undefined);
+                      setMaxSoldPrice(undefined);
+                      setMinProfit(undefined);
+                      setMaxProfit(undefined);
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Clear All
+                  </button>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {minPrice !== undefined && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Min Price: ${minPrice.toLocaleString()}
+                    </span>
+                  )}
+                  {maxPrice !== undefined && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Max Price: ${maxPrice.toLocaleString()}
+                    </span>
+                  )}
+                  {minPurchaseCost !== undefined && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                      Min Purchase: ${minPurchaseCost.toLocaleString()}
+                    </span>
+                  )}
+                  {maxPurchaseCost !== undefined && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                      Max Purchase: ${maxPurchaseCost.toLocaleString()}
+                    </span>
+                  )}
+                  {minAdditionalCosts !== undefined && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      Min Costs: ${minAdditionalCosts.toLocaleString()}
+                    </span>
+                  )}
+                  {maxAdditionalCosts !== undefined && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      Max Costs: ${maxAdditionalCosts.toLocaleString()}
+                    </span>
+                  )}
+                  {minSoldPrice !== undefined && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Min Sold: ${minSoldPrice.toLocaleString()}
+                    </span>
+                  )}
+                  {maxSoldPrice !== undefined && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Max Sold: ${maxSoldPrice.toLocaleString()}
+                    </span>
+                  )}
+                  {minProfit !== undefined && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      Min Profit: ${minProfit.toLocaleString()}
+                    </span>
+                  )}
+                  {maxProfit !== undefined && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      Max Profit: ${maxProfit.toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          )}
         </div>
 
         {/* Loading State */}
@@ -388,20 +748,80 @@ const AllVehicles: React.FC = () => {
                     <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Status
                     </th>
-                    <th 
-                      scope="col" 
-                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                      onClick={() => handleSort('price')}
-                    >
-                      <div className="flex items-center">
-                        Price
-                        {sortField === 'price' && (
-                          sortDirection === 'asc' ? 
-                            <ChevronUp className="inline h-4 w-4 ml-2 text-blue-600" /> : 
-                            <ChevronDown className="inline h-4 w-4 ml-2 text-blue-600" />
-                        )}
-                      </div>
-                    </th>
+                    {isAdmin && (
+                      <>
+                        <th 
+                          scope="col" 
+                          className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={() => handleSort('bought_price')}
+                        >
+                          <div className="flex items-center">
+                            Purchase Cost
+                            {sortField === 'bought_price' && (
+                              sortDirection === 'asc' ? 
+                                <ChevronUp className="inline h-4 w-4 ml-2 text-blue-600" /> : 
+                                <ChevronDown className="inline h-4 w-4 ml-2 text-blue-600" />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          scope="col" 
+                          className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={() => handleSort('repair_costs')}
+                        >
+                          <div className="flex items-center">
+                            Additional Costs
+                            {sortField === 'repair_costs' && (
+                              sortDirection === 'asc' ? 
+                                <ChevronUp className="inline h-4 w-4 ml-2 text-blue-600" /> : 
+                                <ChevronDown className="inline h-4 w-4 ml-2 text-blue-600" />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          scope="col" 
+                          className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={() => handleSort('price')}
+                        >
+                          <div className="flex items-center">
+                            List Price
+                            {sortField === 'price' && (
+                              sortDirection === 'asc' ? 
+                                <ChevronUp className="inline h-4 w-4 ml-2 text-blue-600" /> : 
+                                <ChevronDown className="inline h-4 w-4 ml-2 text-blue-600" />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          scope="col" 
+                          className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={() => handleSort('sold_price')}
+                        >
+                          <div className="flex items-center">
+                            Sold Price
+                            {sortField === 'sold_price' && (
+                              sortDirection === 'asc' ? 
+                                <ChevronUp className="inline h-4 w-4 ml-2 text-blue-600" /> : 
+                                <ChevronDown className="inline h-4 w-4 ml-2 text-blue-600" />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          scope="col" 
+                          className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={() => handleSort('profit')}
+                        >
+                          <div className="flex items-center">
+                            Profit
+                            {sortField === 'profit' && (
+                              sortDirection === 'asc' ? 
+                                <ChevronUp className="inline h-4 w-4 ml-2 text-blue-600" /> : 
+                                <ChevronDown className="inline h-4 w-4 ml-2 text-blue-600" />
+                            )}
+                          </div>
+                        </th>
+                      </>
+                    )}
                     <th 
                       scope="col" 
                       className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
@@ -472,14 +892,50 @@ const AllVehicles: React.FC = () => {
                             {vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <DollarSign className="h-4 w-4 text-green-600 mr-1" />
-                            <span className="text-sm font-semibold text-gray-900">
-                              ${vehicle.price.toLocaleString()}
-                            </span>
-                          </div>
-                        </td>
+                        {isAdmin && (
+                          <>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <DollarSign className="h-4 w-4 text-orange-600 mr-1" />
+                                <span className="text-sm text-gray-900">
+                                  {vehicle.bought_price ? `$${vehicle.bought_price.toLocaleString()}` : 'N/A'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <DollarSign className="h-4 w-4 text-yellow-600 mr-1" />
+                                <span className="text-sm text-gray-900">
+                                  {vehicle.repair_costs ? `$${vehicle.repair_costs.toLocaleString()}` : 'N/A'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <DollarSign className="h-4 w-4 text-blue-600 mr-1" />
+                                <span className="text-sm font-semibold text-gray-900">
+                                  ${vehicle.price.toLocaleString()}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <DollarSign className="h-4 w-4 text-green-600 mr-1" />
+                                <span className="text-sm text-gray-900">
+                                  {vehicle.sold_price ? `$${vehicle.sold_price.toLocaleString()}` : 'N/A'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <DollarSign className={`h-4 w-4 mr-1 ${vehicle.sold_price && vehicle.bought_price ? (vehicle.sold_price - vehicle.bought_price - (vehicle.repair_costs || 0)) > 0 ? 'text-green-600' : 'text-red-600' : 'text-gray-600'}`} />
+                                <span className={`text-sm font-semibold ${vehicle.sold_price && vehicle.bought_price ? (vehicle.sold_price - vehicle.bought_price - (vehicle.repair_costs || 0)) > 0 ? 'text-green-600' : 'text-red-600' : 'text-gray-600'}`}>
+                                  {vehicle.sold_price && vehicle.bought_price ? `$${(vehicle.sold_price - vehicle.bought_price - (vehicle.repair_costs || 0)).toLocaleString()}` : 'N/A'}
+                                </span>
+                              </div>
+                            </td>
+                          </>
+                        )}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center text-sm text-gray-600">
                             <Car className="h-4 w-4 mr-2 text-gray-400" />

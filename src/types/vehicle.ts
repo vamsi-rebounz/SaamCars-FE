@@ -25,8 +25,19 @@ export interface Vehicle {
   carfax_link?: string;
   is_bought_in_auction?: boolean;
   seller_name?: string;
+  seller_email?: string;
+  seller_phone?: string;
   bought_price?: number;
   repair_costs?: number;
   created_at?: string;
   updated_at?: string;
+  purchase_details?: {
+    is_bought_in_auction?: boolean;
+    seller_name?: string;
+    seller_email?: string;
+    seller_phone?: string;
+    bought_price?: number;
+    repair_costs?: number;
+    sold_price?: number;
+  };
 } 

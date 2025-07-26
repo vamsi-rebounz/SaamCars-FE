@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom';
 import { Calendar, MapPin, Gauge, Heart } from 'lucide-react';
 
 interface VehicleCardProps {
-  id: number;
+  id: string | number;
   make: string;
   model: string;
   year: number;
   price: number;
-  mileage: number;
+  mileage?: number;
   image?: string;
   condition?: string;
   tags: string[];
@@ -109,7 +109,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
           </div>
           <div className="flex items-center gap-1.5">
             <Gauge className="h-4 w-4 text-gray-400" />
-            <span>{mileage.toLocaleString()} mi</span>
+            <span>{mileage ? `${mileage.toLocaleString()} mi` : 'N/A'}</span>
           </div>
           {condition && (
             <div className="col-span-2 flex items-center gap-1.5">

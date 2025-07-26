@@ -28,6 +28,14 @@ interface Vehicle {
   created_at?: string;
   updated_at?: string;
   purchase_details?: any; // Added for purchase details
+  // Financial fields
+  bought_price?: number;
+  repair_costs?: number;
+  sold_price?: number;
+  is_bought_in_auction?: boolean;
+  seller_name?: string;
+  seller_email?: string;
+  seller_phone?: string;
 }
 
 interface ErrorResponse {
@@ -47,9 +55,20 @@ export interface InventoryFilters {
   limit?: number;
   page?: number;
   search?: string;
-  sort_by?: 'date_added' | 'price' | 'year' | 'mileage' | 'make';
+  sort_by?: 'date_added' | 'price' | 'year' | 'mileage' | 'make' | 'bought_price' | 'repair_costs' | 'sold_price' | 'profit';
   sort_order?: 'asc' | 'desc';
   status?: string;
+  purchase_type?: string;
+  min_price?: number;
+  max_price?: number;
+  min_purchase_cost?: number;
+  max_purchase_cost?: number;
+  min_additional_costs?: number;
+  max_additional_costs?: number;
+  min_sold_price?: number;
+  max_sold_price?: number;
+  min_profit?: number;
+  max_profit?: number;
 }
 
 export interface PaginationInfo {
@@ -82,34 +101,57 @@ export interface GetInventoryResponse {
   error?: string;
 }
 
-const mapBackendVehicle = (v: any): Vehicle => ({
-  id: v.vehicle_id?.toString() || v.id?.toString(),
-  make: v.make,
-  model: v.model,
-  year: v.year,
-  price: parseFloat(v.price ?? v.vehicle_price ?? v.amount ?? '0'),
-  mileage: v.mileage,
-  vin: v.vin,
-  exterior_color: v.exterior_color || v.exteriorColour || '',
-  interior_color: v.interior_color || v.interiorColour || '',
-  transmission: v.transmission || '',
-  body_type: v.body_type || '',
-  fuel_type: v.fuel_type || '',
-  engine: v.engine ?? v.engine_type ?? '',
-  condition: v.condition || '',
-  status: v.status || 'available',
-  description: v.description || '',
-  features: Array.isArray(v.features) ? v.features : (v.features ? JSON.parse(v.features) : []),
-  tags: Array.isArray(v.tags) ? v.tags : (v.tags ? JSON.parse(v.tags) : []),
-  images: Array.isArray(v.images) ? v.images : (Array.isArray(v.image_urls) ? v.image_urls : (v.image_url ? [v.image_url] : [])),
-  location: v.location ?? v.vehicle_location ?? '',
-  is_featured: v.is_featured ?? v.featured ?? false,
-  stock_number: v.stock_number ?? v.stocknumber ?? '',
-  carfax_link: v.carfax_link || '',
-  created_at: v.created_at,
-  updated_at: v.updated_at,
-  purchase_details: v.purchase_details || undefined,
-});
+const mapBackendVehicle = (v: any): Vehicle => {
+  // Debug logging for financial fields
+  console.log('Raw backend vehicle data:', {
+    id: v.vehicle_id || v.id,
+    bought_price: v.bought_price,
+    repair_costs: v.repair_costs,
+    sold_price: v.sold_price,
+    types: {
+      bought_price: typeof v.bought_price,
+      repair_costs: typeof v.repair_costs,
+      sold_price: typeof v.sold_price
+    }
+  });
+
+  return {
+    id: v.vehicle_id?.toString() || v.id?.toString(),
+    make: v.make,
+    model: v.model,
+    year: v.year,
+    price: parseFloat(v.price ?? v.vehicle_price ?? v.amount ?? '0'),
+    mileage: v.mileage,
+    vin: v.vin,
+    exterior_color: v.exterior_color || v.exteriorColour || '',
+    interior_color: v.interior_color || v.interiorColour || '',
+    transmission: v.transmission || '',
+    body_type: v.body_type || '',
+    fuel_type: v.fuel_type || '',
+    engine: v.engine ?? v.engine_type ?? '',
+    condition: v.condition || '',
+    status: v.status || 'available',
+    description: v.description || '',
+    features: Array.isArray(v.features) ? v.features : (v.features ? JSON.parse(v.features) : []),
+    tags: Array.isArray(v.tags) ? v.tags : (v.tags ? JSON.parse(v.tags) : []),
+    images: Array.isArray(v.images) ? v.images : (Array.isArray(v.image_urls) ? v.image_urls : (v.image_url ? [v.image_url] : [])),
+    location: v.location ?? v.vehicle_location ?? '',
+    is_featured: v.is_featured ?? v.featured ?? false,
+    stock_number: v.stock_number ?? v.stocknumber ?? '',
+    carfax_link: v.carfax_link || '',
+    created_at: v.created_at,
+    updated_at: v.updated_at,
+    purchase_details: v.purchase_details || undefined,
+    // Financial fields
+    bought_price: v.bought_price ? parseFloat(v.bought_price) : undefined,
+    repair_costs: v.repair_costs ? parseFloat(v.repair_costs) : undefined,
+    sold_price: v.sold_price ? parseFloat(v.sold_price) : undefined,
+    is_bought_in_auction: v.is_bought_in_auction || false,
+    seller_name: v.seller_name || undefined,
+    seller_email: v.seller_email || undefined,
+    seller_phone: v.seller_phone || undefined,
+  };
+};
 
 export const addVehicle = async (vehicleData: FormData): Promise<AddVehicleResponse> => {
   try {
@@ -271,7 +313,18 @@ export const getInventory = async (filters?: InventoryFilters): Promise<GetInven
         sort_by: filters?.sort_by || 'date_added',
         sort_order: filters?.sort_order || 'desc',
         status: filters?.status || 'all',
-        category: filters?.category || 'all'
+        category: filters?.category || 'all',
+        ...(filters?.purchase_type && { purchase_type: filters.purchase_type }),
+        ...(filters?.min_price !== undefined && { min_price: filters.min_price }),
+        ...(filters?.max_price !== undefined && { max_price: filters.max_price }),
+        ...(filters?.min_purchase_cost !== undefined && { min_purchase_cost: filters.min_purchase_cost }),
+        ...(filters?.max_purchase_cost !== undefined && { max_purchase_cost: filters.max_purchase_cost }),
+        ...(filters?.min_additional_costs !== undefined && { min_additional_costs: filters.min_additional_costs }),
+        ...(filters?.max_additional_costs !== undefined && { max_additional_costs: filters.max_additional_costs }),
+        ...(filters?.min_sold_price !== undefined && { min_sold_price: filters.min_sold_price }),
+        ...(filters?.max_sold_price !== undefined && { max_sold_price: filters.max_sold_price }),
+        ...(filters?.min_profit !== undefined && { min_profit: filters.min_profit }),
+        ...(filters?.max_profit !== undefined && { max_profit: filters.max_profit })
       }
     });
     

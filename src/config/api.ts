@@ -12,6 +12,8 @@ if(isProduction) {
     API_BASE_URL = LOCAL_API_BASE_URL;
 }
 
+export { API_BASE_URL };
+
 export const api = axios.create({
     baseURL: API_BASE_URL,
     headers: {
