@@ -616,6 +616,8 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
                 >
                   <option value="">Select status</option>
                   <option value="available">Available</option>
+                  <option value="reserved">Reserved</option>
+                  <option value="sold">Sold</option>
                   <option value="under_maintenance">Under Maintenance</option>
                   <option value="under_inspection">Under Inspection</option>
                 </select>

@@ -7,13 +7,10 @@ import {
   Car,
   Users,
   TrendingUp,
-  CreditCard,
   Calendar,
-  Eye,
   AlertTriangle,
   CheckCircle,
   Clock,
-  Activity,
   Tag,
   BarChart3,
   Gavel,
@@ -165,34 +162,10 @@ const Dashboard: React.FC = () => {
       color: 'text-red-600',
       bgColor: 'bg-red-50',
       borderColor: 'border-red-200'
-    },
-    {
-      title: 'Appointments',
-      value: dashboardData.summary.total_appointments,
-      icon: <Calendar className="h-5 w-5" />,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-      borderColor: 'border-purple-200'
-    },
-    {
-      title: 'Test Drives',
-      value: dashboardData.summary.test_drives,
-      icon: <Eye className="h-5 w-5" />,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      borderColor: 'border-blue-200'
     }
   ];
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'processing': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'failed': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -325,47 +298,7 @@ const Dashboard: React.FC = () => {
           />
         </div>
 
-        {/* Recent Activity */}
-        <div className="mb-8">
-          <div className="flex items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Recent Activity</h2>
-            <div className="ml-3 px-3 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded-full">
-              Live Feed
-            </div>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Latest Updates</h3>
-                <Activity className="h-5 w-5 text-gray-400" />
-              </div>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                {dashboardData.recent_activity.slice(0, 5).map((activity, index) => (
-                  <div key={index} className="flex items-start space-x-4 p-4 hover:bg-gray-50 rounded-xl transition-colors duration-200">
-                    <div className="flex-shrink-0 mt-1">
-                      {activity.type === 'payment' && <div className="p-2 bg-green-100 rounded-lg border border-green-200"><CreditCard className="h-4 w-4 text-green-600" /></div>}
-                      {activity.type === 'vehicle' && <div className="p-2 bg-blue-100 rounded-lg border border-blue-200"><Car className="h-4 w-4 text-blue-600" /></div>}
-                      {activity.type === 'auction' && <div className="p-2 bg-amber-100 rounded-lg border border-amber-200"><TrendingUp className="h-4 w-4 text-amber-600" /></div>}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">{activity.description}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(activity.timestamp).toLocaleDateString()} at {new Date(activity.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                      </p>
-                    </div>
-                    <div className="flex-shrink-0">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadge(activity.status)}`}>
-                        {activity.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+
 
         {/* Critical Alerts - Only show if there are critical alerts */}
         {dashboardData.alerts.filter(alert => alert.priority === 'critical' || alert.priority === 'high').length > 0 && (

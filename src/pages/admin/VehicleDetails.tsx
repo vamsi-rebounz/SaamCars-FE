@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Edit, Image as ImageIcon, Trash2, ChevronLeft, ChevronRight, AlertTriangle, FileText } from 'lucide-react';
 import { getVehicleById, deleteVehicle } from '../../services/inventory';
 import { Vehicle } from '../../types/vehicle';
@@ -10,6 +10,7 @@ import ErrorState from '../../components/ErrorState';
 const VehicleDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +102,15 @@ const VehicleDetails: React.FC = () => {
   };
 
   const handleBack = () => {
-    navigate('/admin/inventory');
+    // Check if user came from All Vehicles page
+    const isFromAllVehicles = location.state?.from === 'all-vehicles' || 
+                             document.referrer.includes('/admin/all-vehicles');
+    
+    if (isFromAllVehicles) {
+      navigate('/admin/all-vehicles');
+    } else {
+      navigate('/admin/inventory');
+    }
   };
 
   if (loading) {
@@ -130,7 +139,9 @@ const VehicleDetails: React.FC = () => {
             onClick={handleBack}
             className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
-            Back to Inventory
+            {location.state?.from === 'all-vehicles' || document.referrer.includes('/admin/all-vehicles') 
+              ? 'Back to All Vehicles' 
+              : 'Back to Inventory'}
           </button>
         </div>
       </div>
@@ -156,7 +167,7 @@ const VehicleDetails: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Back to Inventory Button */}
+        {/* Back Button */}
         <div className="mb-6">
           <span
             onClick={handleBack}
@@ -165,7 +176,9 @@ const VehicleDetails: React.FC = () => {
             tabIndex={0}
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
-            Back to Inventory
+            {location.state?.from === 'all-vehicles' || document.referrer.includes('/admin/all-vehicles') 
+              ? 'Back to All Vehicles' 
+              : 'Back to Inventory'}
           </span>
         </div>
 

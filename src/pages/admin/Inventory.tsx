@@ -406,31 +406,26 @@ const Inventory: React.FC = () => {
 
         {/* Empty State */}
         {!loading && vehicles.length === 0 && (
-          <div className="text-center py-12">
-            <div className="mx-auto h-24 w-24 text-gray-300 mb-4">
-              <Car className="h-full w-full" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {error ? 'Error loading vehicles' : 'No vehicles found'}
-            </h3>
-            <p className="text-gray-500 mb-6">
-              {error ? 'There was an issue loading the inventory. Please try refreshing the page.' : 'Get started by adding your first vehicle to the inventory.'}
-            </p>
-            <div className="space-x-4">
-              <button
-                onClick={() => fetchVehicles()}
-                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200"
-              >
-                <RefreshCw className="h-5 w-5 mr-2" />
-                Retry
-              </button>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                Add First Vehicle
-              </button>
+          <div className="text-center py-16 relative overflow-hidden rounded-xl">
+            {/* Background Image */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
+              style={{
+                backgroundImage: `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236B7280"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.22.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>')`
+              }}
+            ></div>
+            
+            {/* Content */}
+            <div className="relative z-10">
+              <div className="mx-auto h-20 w-20 text-gray-300 mb-6">
+                <Car className="h-full w-full" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-3 tracking-wide">
+                {error ? 'Error loading vehicles' : 'NO VEHICLES ARE LISTED'}
+              </h3>
+              <p className="text-gray-500 text-lg">
+                {error ? 'There was an issue loading the inventory. Please try refreshing the page.' : ''}
+              </p>
             </div>
           </div>
         )}

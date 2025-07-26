@@ -326,8 +326,8 @@ const Payments: React.FC = () => {
             >
               <option value="all">Payment status</option>
               <option value="completed">Completed</option>
-              <option value="pending">Pending</option>
-              <option value="failed">Failed</option>
+              <option value="pending" disabled>Pending</option>
+              <option value="failed" disabled>Failed</option>
               <option value="refunded">Refunded</option>
             </select>
           </div>

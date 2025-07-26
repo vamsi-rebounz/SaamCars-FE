@@ -171,7 +171,7 @@ const AllVehicles: React.FC = () => {
   };
 
   const handleVehicleClick = (id: string | number) => {
-    navigate(`/admin/inventory/${id}`);
+    navigate(`/admin/inventory/${id}`, { state: { from: 'all-vehicles' } });
   };
 
   const getStatusInfo = (status: string) => {
