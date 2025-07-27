@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, MapPin, Gauge, Car } from 'lucide-react';
+import { Calendar, Gauge, Car } from 'lucide-react';
 
 interface VehicleCardProps {
   id: string | number;

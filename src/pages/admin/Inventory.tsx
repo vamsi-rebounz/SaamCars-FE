@@ -11,7 +11,6 @@ import {
   Filter,
   Image as ImageIcon,
   Plus,
-  RefreshCw,
   Search,
   Tag,
   Trash2,

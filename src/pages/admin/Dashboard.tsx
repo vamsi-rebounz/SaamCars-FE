@@ -7,15 +7,10 @@ import {
   Car,
   TrendingUp,
   Calendar,
-  CheckCircle,
-  Clock,
   Tag,
   BarChart3,
   Award,
-  Target,
-  Percent,
   Users,
-  AlertTriangle,
   TrendingDown
 } from 'lucide-react';
 

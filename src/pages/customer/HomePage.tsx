@@ -1,36 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Shield, ThumbsUp, Clock, ArrowRight, Search, Car, Calendar } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Shield, ThumbsUp, Clock, ArrowRight } from 'lucide-react';
 import { getInventory, getDropdownOptions } from '../../services/inventory';
 import VehicleCard from '../../components/VehicleCard';
 import { Vehicle } from '../../types/vehicle';
-import { BODY_TYPES, FUEL_TYPES, TRANSMISSION_TYPES } from '../../constants/enums';
-
-// Helper to get unique values case-insensitively, preserving first occurrence's case
-function getUniqueCaseInsensitive(arr: string[]) {
-  const seen = new Set();
-  const result: string[] = [];
-  for (const item of arr) {
-    const lower = item.toLowerCase();
-    if (!seen.has(lower)) {
-      seen.add(lower);
-      result.push(item);
-    }
-  }
-  return result;
-}
 
 const HomePage: React.FC = () => {
   const [featuredVehicles, setFeaturedVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchMake, setSearchMake] = useState('');
-  const [searchModel, setSearchModel] = useState('');
-  const [makeOptions, setMakeOptions] = useState<string[]>([]);
-  const [modelOptions, setModelOptions] = useState<string[]>([]);
-  const [yearOptions, setYearOptions] = useState<string[]>([]);
-  const [searchYear, setSearchYear] = useState('');
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,10 +17,8 @@ const HomePage: React.FC = () => {
       try {
         // Fetch dropdown options efficiently
         const dropdownResponse = await getDropdownOptions();
-        if (dropdownResponse.success && dropdownResponse.data) {
-          setMakeOptions(dropdownResponse.data.makes);
-          setModelOptions(dropdownResponse.data.models);
-          setYearOptions(dropdownResponse.data.years);
+        if (!dropdownResponse.success) {
+          console.warn('Failed to fetch dropdown options');
         }
 
         // Fetch featured vehicles (only 3 for display)
@@ -61,28 +37,12 @@ const HomePage: React.FC = () => {
       } catch (err) {
         setError('Failed to load data.');
         setFeaturedVehicles([]);
-        setMakeOptions([]);
-        setModelOptions([]);
-        setYearOptions([]);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
   }, []);
-
-  // Options are now fetched from the efficient API endpoint
-
-  const handleSearch = () => {
-    const params = new URLSearchParams();
-    if (searchMake) params.append('make', searchMake);
-    if (searchModel) params.append('model', searchModel);
-    if (searchYear) params.append('year', searchYear);
-    
-    navigate(`/inventory?${params.toString()}`);
-  };
-
-  const hasActiveFilters = searchMake || searchModel || searchYear;
 
   return (
     <div>
