@@ -116,6 +116,9 @@ export const API_ENDPOINTS = {
     ADD_VEHICLE: '/inventory/add-vehicle',
     UPDATE_VEHICLE: (id: string) => `/inventory/vehicles/update?id=${id}`,
     DELETE_VEHICLE: (id: string) => `/inventory/vehicles/delete/${id}`,
+    DROPDOWN_OPTIONS: '/inventory/dropdown-options',
+    CATEGORIES: '/inventory/categories',
+    VEHICLE_STATUSES: '/inventory/statuses',
     
     // Auction
     AUCTIONS: '/auction-tracker',

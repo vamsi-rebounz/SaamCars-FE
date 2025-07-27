@@ -1,33 +1,66 @@
 import React, { useState, useEffect } from 'react';
-import { Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Filter, ChevronLeft, ChevronRight, Search, Car, Calendar, DollarSign } from 'lucide-react';
 import VehicleCard from '../../components/VehicleCard';
-import { getInventory, type InventoryFilters, type PaginationInfo, type FilterStats } from '../../services/inventory';
+import { getInventory, getCategories, getVehicleStatuses, type InventoryFilters, type PaginationInfo, type FilterStats } from '../../services/inventory';
 import { Vehicle as VehicleType } from '../../types/vehicle';
 import AlertState from '../../components/ErrorState';
 import useDebounce from '../../hooks/useDebounce';
+import { useSearchParams } from 'react-router-dom';
 
 interface Vehicle extends VehicleType {
   // Add any additional properties that might be returned from the backend
 }
 
 const InventoryPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Removed unused isFilterOpen state
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [filterStats, setFilterStats] = useState<FilterStats | null>(null);
-  const [searchInput, setSearchInput] = useState('');
+  const [categories, setCategories] = useState<{ bodyTypes: { [key: string]: number }; fuelTypes: { [key: string]: number } }>({ bodyTypes: {}, fuelTypes: {} }); // Updated state for separated categories
+  const [vehicleStatuses, setVehicleStatuses] = useState<{ [key: string]: number }>({}); // New state for vehicle statuses
   
-  const [filters, setFilters] = useState<InventoryFilters>({
-    category: 'all',
-    limit: 9,
-    page: 1,
-    search: '',
-    sort_by: 'date_added',
-    sort_order: 'desc',
-    status: 'available'
-  });
+  // Initialize search input from URL parameters
+  const getInitialSearchInput = (): string => {
+    const make = searchParams.get('make') || '';
+    const model = searchParams.get('model') || '';
+    const year = searchParams.get('year') || '';
+    const searchTerms = [make, model, year].filter(Boolean);
+    return searchTerms.join(' ');
+  };
+  
+  const [searchInput, setSearchInput] = useState(getInitialSearchInput);
+  
+  // Initialize filters from URL parameters
+  const getInitialFilters = (): InventoryFilters => {
+    const make = searchParams.get('make') || '';
+    const model = searchParams.get('model') || '';
+    const year = searchParams.get('year') || '';
+    const bodyType = searchParams.get('body_type') || 'all';
+    const fuelType = searchParams.get('fuel_type') || 'all';
+    const minPrice = searchParams.get('min_price') || '';
+    const maxPrice = searchParams.get('max_price') || '';
+    
+    // Combine make, model, year into search term
+    const searchTerms = [make, model, year].filter(Boolean);
+    const search = searchTerms.length > 0 ? searchTerms.join(' ') : '';
+    
+    return {
+      body_type: bodyType === 'all' ? undefined : bodyType,
+      fuel_type: fuelType === 'all' ? undefined : fuelType,
+      limit: 12,
+      page: 1,
+      search: search,
+      sort_by: 'date_added',
+      sort_order: 'desc',
+      status: 'available',
+      min_price: minPrice ? parseFloat(minPrice) : undefined,
+      max_price: maxPrice ? parseFloat(maxPrice) : undefined
+    };
+  };
+  
+  const [filters, setFilters] = useState<InventoryFilters>(getInitialFilters);
 
   // Debounce search term
   const debouncedSearch = useDebounce(searchInput, 500);
@@ -42,7 +75,7 @@ const InventoryPage: React.FC = () => {
     const fetchVehicles = async () => {
       try {
         setLoading(true);
-        console.log('Fetching vehicles with filters:', filters);
+        console.log('Fetching vehicles with filters:', JSON.stringify(filters, null, 2));
         const response = await getInventory(filters);
         console.log('Got response:', response);
         if (response.success) {
@@ -64,6 +97,40 @@ const InventoryPage: React.FC = () => {
     fetchVehicles();
   }, [filters]);
 
+  // Fetch categories on component mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await getCategories();
+        if (response.success && response.data) {
+          setCategories(response.data);
+        } else {
+          console.error('Failed to load categories:', response.error);
+        }
+      } catch (err: any) {
+        console.error('Error fetching categories:', err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  // Fetch vehicle statuses on component mount
+  useEffect(() => {
+    const fetchVehicleStatuses = async () => {
+      try {
+        const response = await getVehicleStatuses();
+        if (response.success && response.data) {
+          setVehicleStatuses(response.data);
+        } else {
+          console.error('Failed to load vehicle statuses:', response.error);
+        }
+      } catch (err: any) {
+        console.error('Error fetching vehicle statuses:', err);
+      }
+    };
+    fetchVehicleStatuses();
+  }, []);
+
   // Scroll to top on mount
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -75,7 +142,13 @@ const InventoryPage: React.FC = () => {
     if (name === 'search') {
       setSearchInput(value);
     } else {
-      setFilters(prev => ({ ...prev, [name]: value, page: 1 }));
+      // Handle body_type and fuel_type filters - convert 'all' to undefined
+      let filterValue = value;
+      if ((name === 'body_type' || name === 'fuel_type') && value === 'all') {
+        filterValue = undefined;
+      }
+      console.log(`Filter change - ${name}:`, value, '->', filterValue);
+      setFilters(prev => ({ ...prev, [name]: filterValue, page: 1 }));
     }
   };
 
@@ -89,18 +162,21 @@ const InventoryPage: React.FC = () => {
   // Reset filters
   const resetFilters = () => {
     setFilters({
-      category: 'all',
-      limit: 9,
+      body_type: undefined,
+      fuel_type: undefined,
+      limit: 12,
       page: 1,
       search: '',
       sort_by: 'date_added',
       sort_order: 'desc',
       status: 'available'
     });
+    setSearchInput('');
+    setSearchParams({}, { replace: true });
   };
 
   // Results per page options
-  const resultsPerPageOptions = [5, 10, 25, 50, 100];
+  const resultsPerPageOptions = [6, 12, 24, 48];
 
   // Handle results per page change
   const handleResultsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -111,8 +187,8 @@ const InventoryPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[...Array(8)].map((_, i) => (
               <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden">
                 <div className="animate-pulse">
                   <div className="aspect-[16/10] bg-gray-200" />
@@ -128,7 +204,7 @@ const InventoryPage: React.FC = () => {
                 </div>
               </div>
             ))}
-            </div>
+          </div>
         </div>
       </div>
     );
@@ -163,133 +239,153 @@ const InventoryPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="border-l-4 border-blue-600 pl-4">
-            <h1 className="text-3xl font-bold text-gray-900">Our Inventory</h1>
-            <p className="mt-2 text-gray-600">
-          Browse our selection of quality pre-owned vehicles.
-        </p>
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Our Vehicle Inventory</h1>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Browse our carefully selected collection of quality pre-owned vehicles. Find your perfect car with confidence.
+            </p>
           </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters - Desktop */}
-          <div className="hidden lg:block w-72 flex-shrink-0">
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="border-b border-gray-100">
-                <div className="p-4 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <Filter className="w-5 h-5 text-blue-600" />
+          <div className="hidden lg:block w-80 flex-shrink-0">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden sticky top-8">
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                    <Filter className="w-5 h-5" />
                     Filters
                   </h2>
-              <button 
-                onClick={resetFilters}
-                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
+                  <button 
+                    onClick={resetFilters}
+                    className="text-sm text-blue-100 hover:text-white font-medium transition-colors"
+                  >
                     Reset All
-              </button>
+                  </button>
                 </div>
               </div>
 
-              <div className="p-4 space-y-6">
-                {/* Category Filter */}
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Category
-                  </label>
-                  <select 
-                    name="category" 
-                    value={filters.category}
-                    onChange={handleFilterChange}
-                    className="w-full rounded-lg border-gray-200 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                  >
-                    <option value="all">All Categories ({filterStats?.total_available || 0})</option>
-                    {filterStats?.categories && Object.entries(filterStats.categories)
-                      .filter(([_, count]) => count > 0)
-                      .sort(([a], [b]) => a.localeCompare(b))
-                      .map(([category, count]) => {
-                        // Format category name for display
-                        const displayName = category
-                          .split('_')
-                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                          .join(' ');
-                        
-                        return (
-                          <option key={category} value={category}>
-                            {displayName} ({count})
-                          </option>
-                        );
-                      })
-                    }
-                    {(!filterStats?.categories || Object.keys(filterStats.categories).length === 0) && (
-                      <option value="" disabled>No categories available</option>
-                    )}
-                  </select>
-              </div>
-
+              <div className="p-6 space-y-6">
                 {/* Search */}
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Search
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <Search className="w-4 h-4 text-blue-600" />
+                    Search Vehicles
                   </label>
                   <input
                     type="text"
                     name="search"
-                    placeholder="Search make, model, or year"
+                    placeholder="Search make, model, or year..."
                     value={searchInput}
                     onChange={handleFilterChange}
-                    className="w-full rounded-lg border-gray-200 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   />
-              </div>
+                </div>
+
+                {/* Category Filter */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <Car className="w-4 h-4 text-blue-600" />
+                    Vehicle Body Type
+                  </label>
+                  <select 
+                    name="body_type" 
+                    value={filters.body_type || 'all'}
+                    onChange={handleFilterChange}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  >
+                    <option value="all">All Body Types</option>
+                    {Object.entries(categories.bodyTypes || {}).map(([bodyType, count]) => (
+                      <option key={bodyType} value={bodyType}>
+                        {bodyType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} ({count})
+                      </option>
+                    ))}
+                    {(!categories.bodyTypes || Object.keys(categories.bodyTypes).length === 0) && (
+                      <option value="" disabled>No body types available</option>
+                    )}
+                  </select>
+                </div>
+
+                {/* Fuel Type Filter */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <Car className="w-4 h-4 text-blue-600" />
+                    Fuel Type
+                  </label>
+                  <select 
+                    name="fuel_type" 
+                    value={filters.fuel_type || 'all'}
+                    onChange={handleFilterChange}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  >
+                    <option value="all">All Fuel Types</option>
+                    {Object.entries(categories.fuelTypes || {}).map(([fuelType, count]) => (
+                      <option key={fuelType} value={fuelType}>
+                        {fuelType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} ({count})
+                      </option>
+                    ))}
+                    {(!categories.fuelTypes || Object.keys(categories.fuelTypes).length === 0) && (
+                      <option value="" disabled>No fuel types available</option>
+                    )}
+                  </select>
+                </div>
 
                 {/* Sort By */}
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
                     Sort By
                   </label>
-                <select 
+                  <select 
                     name="sort_by"
                     value={filters.sort_by}
-                  onChange={handleFilterChange}
-                    className="w-full rounded-lg border-gray-200 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    onChange={handleFilterChange}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   >
                     <option value="date_added">Newest Arrivals</option>
                     <option value="price">Price</option>
                     <option value="year">Year</option>
                     <option value="mileage">Mileage</option>
                     <option value="make">Make</option>
-                </select>
-              </div>
+                  </select>
+                </div>
 
                 {/* Sort Order */}
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
                     Sort Order
                   </label>
-                <select 
+                  <select 
                     name="sort_order"
                     value={filters.sort_order}
-                  onChange={handleFilterChange}
-                    className="w-full rounded-lg border-gray-200 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    onChange={handleFilterChange}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   >
                     <option value="desc">High to Low</option>
                     <option value="asc">Low to High</option>
-                </select>
-              </div>
+                  </select>
+                </div>
 
                 {/* Status */}
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Status
-                    </label>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Vehicle Status
+                  </label>
                   <select
                     name="status"
                     value={filters.status}
                     onChange={handleFilterChange}
-                    className="w-full rounded-lg border-gray-200 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   >
                     <option value="all">All Vehicles</option>
-                    <option value="available">Available ({filterStats?.total_available || 0})</option>
-                    <option value="sold">Sold ({filterStats?.total_sold || 0})</option>
+                    {Object.entries(vehicleStatuses).map(([status, count]) => (
+                      <option key={status} value={status}>
+                        {status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} ({count})
+                      </option>
+                    ))}
+                    {Object.keys(vehicleStatuses).length === 0 && (
+                      <option value="" disabled>No statuses available</option>
+                    )}
                   </select>
                 </div>
               </div>
@@ -299,38 +395,49 @@ const InventoryPage: React.FC = () => {
           {/* Main Content */}
           <div className="flex-1">
             {/* Results Summary and Results Per Page */}
-            <div className="bg-white rounded-lg shadow-md p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <span className="text-gray-600">
-                Showing {vehicles.length} of {pagination?.total_items || 0} vehicles
-              </span>
-              <div className="flex items-center gap-2 w-full md:w-auto">
-                <label htmlFor="results-per-page" className="text-sm text-gray-700 mr-2 whitespace-nowrap">Results per page:</label>
-                <select
-                  id="results-per-page"
-                  value={String(filters.limit)}
-                  onChange={handleResultsPerPageChange}
-                  className="rounded-lg border-gray-200 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 px-3 py-2 text-sm w-full md:w-auto"
-                >
-                  {resultsPerPageOptions.map(opt => (
-                    <option key={opt} value={String(opt)}>{opt}</option>
-                  ))}
-                </select>
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 mb-8">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">
+                    Showing <span className="font-semibold text-gray-900">{vehicles.length}</span> of{' '}
+                    <span className="font-semibold text-gray-900">{pagination?.total_items || 0}</span> vehicles
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label htmlFor="results-per-page" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                    Results per page:
+                  </label>
+                  <select
+                    id="results-per-page"
+                    value={String(filters.limit)}
+                    onChange={handleResultsPerPageChange}
+                    className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+                  >
+                    {resultsPerPageOptions.map(opt => (
+                      <option key={opt} value={String(opt)}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
             {vehicles.length === 0 ? (
-              <div className="bg-white rounded-lg shadow-md p-8 text-center">
-                <p className="text-lg text-gray-600">No vehicles found matching your criteria.</p>
+              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Car className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No vehicles found</h3>
+                <p className="text-gray-600 mb-6">No vehicles match your current search criteria.</p>
                 <button
                   onClick={resetFilters}
-                  className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                 >
                   Reset Filters
                 </button>
               </div>
             ) : (
               <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {vehicles.map(vehicle => (
                     <VehicleCard
                       key={vehicle.id}
@@ -345,32 +452,33 @@ const InventoryPage: React.FC = () => {
                       tags={vehicle.tags ?? []}
                     />
                   ))}
-              </div>
+                </div>
 
-                {/* Pagination (always show, even if only one page or no results) */}
-                {pagination && (
-                  <div className="mt-8 flex justify-center items-center gap-2 w-full">
+                {/* Pagination */}
+                {pagination && pagination.total_pages > 1 && (
+                  <div className="mt-12 flex justify-center items-center gap-2">
                     <button
                       onClick={() => handlePageChange(pagination.current_page - 1)}
                       disabled={pagination.current_page <= 1}
-                      className={`p-2 rounded-lg border bg-white ${
+                      className={`p-3 rounded-lg border transition-colors ${
                         pagination.current_page > 1
-                          ? 'border-gray-200 text-gray-600 hover:border-blue-600 hover:text-blue-600'
+                          ? 'border-gray-200 text-gray-600 hover:border-blue-600 hover:text-blue-600 hover:bg-blue-50'
                           : 'border-gray-100 text-gray-400 cursor-not-allowed'
                       }`}
                       aria-label="Previous Page"
                     >
                       <ChevronLeft className="w-5 h-5" />
                     </button>
+                    
                     <div className="flex items-center gap-1">
                       {[...Array(Math.max(1, pagination.total_pages))].map((_, i) => (
                         <button
                           key={i}
                           onClick={() => handlePageChange(i + 1)}
-                          className={`min-w-[2.5rem] h-10 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${
+                          className={`min-w-[3rem] h-12 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${
                             pagination.current_page === i + 1
-                              ? 'bg-blue-600 text-white shadow'
-                              : 'text-gray-600 bg-white hover:bg-gray-50 border border-gray-200'
+                              ? 'bg-blue-600 text-white shadow-lg'
+                              : 'text-gray-600 bg-white hover:bg-gray-50 border border-gray-200 hover:border-blue-300'
                           }`}
                           aria-current={pagination.current_page === i + 1 ? 'page' : undefined}
                         >
@@ -378,12 +486,13 @@ const InventoryPage: React.FC = () => {
                         </button>
                       ))}
                     </div>
+                    
                     <button
                       onClick={() => handlePageChange(pagination.current_page + 1)}
                       disabled={pagination.current_page >= (pagination.total_pages || 1)}
-                      className={`p-2 rounded-lg border bg-white ${
+                      className={`p-3 rounded-lg border transition-colors ${
                         pagination.current_page < (pagination.total_pages || 1)
-                          ? 'border-gray-200 text-gray-600 hover:border-blue-600 hover:text-blue-600'
+                          ? 'border-gray-200 text-gray-600 hover:border-blue-600 hover:text-blue-600 hover:bg-blue-50'
                           : 'border-gray-100 text-gray-400 cursor-not-allowed'
                       }`}
                       aria-label="Next Page"

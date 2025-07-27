@@ -51,7 +51,8 @@ interface AddVehicleResponse {
 }
 
 export interface InventoryFilters {
-  category?: string;
+  body_type?: string;
+  fuel_type?: string;
   limit?: number;
   page?: number;
   search?: string;
@@ -313,7 +314,8 @@ export const getInventory = async (filters?: InventoryFilters): Promise<GetInven
         sort_by: filters?.sort_by || 'date_added',
         sort_order: filters?.sort_order || 'desc',
         status: filters?.status || 'all',
-        category: filters?.category || 'all',
+        ...(filters?.body_type && { body_type: filters.body_type }),
+        ...(filters?.fuel_type && { fuel_type: filters.fuel_type }),
         ...(filters?.purchase_type && { purchase_type: filters.purchase_type }),
         ...(filters?.min_price !== undefined && { min_price: filters.min_price }),
         ...(filters?.max_price !== undefined && { max_price: filters.max_price }),
@@ -401,6 +403,75 @@ export const getVehicleById = async (vehicleId: string): Promise<{ success: bool
     return {
       success: false,
       error: axiosError.response?.data?.message || axiosError.response?.data?.error || 'Failed to fetch vehicle'
+    };
+  }
+};
+
+export const getDropdownOptions = async (): Promise<{ success: boolean; data?: { makes: string[]; models: string[]; years: string[] }; error?: string }> => {
+  try {
+    const response = await api.get(API_ENDPOINTS.DROPDOWN_OPTIONS);
+    if (response.data.status === 'success' && response.data.data) {
+      return { 
+        success: true, 
+        data: response.data.data
+      };
+    } else {
+      return {
+        success: false,
+        error: response.data.message || 'Failed to fetch dropdown options'
+      };
+    }
+  } catch (error: unknown) {
+    const axiosError = error as AxiosError<ErrorResponse>;
+    return {
+      success: false,
+      error: axiosError.response?.data?.message || axiosError.response?.data?.error || 'Failed to fetch dropdown options'
+    };
+  }
+};
+
+export const getCategories = async (): Promise<{ success: boolean; data?: { bodyTypes: { [key: string]: number }; fuelTypes: { [key: string]: number } }; error?: string }> => {
+  try {
+    const response = await api.get(API_ENDPOINTS.CATEGORIES);
+    if (response.data.status === 'success' && response.data.data) {
+      return { 
+        success: true, 
+        data: response.data.data
+      };
+    } else {
+      return {
+        success: false,
+        error: response.data.message || 'Failed to fetch categories'
+      };
+    }
+  } catch (error: unknown) {
+    const axiosError = error as AxiosError<ErrorResponse>;
+    return {
+      success: false,
+      error: axiosError.response?.data?.message || axiosError.response?.data?.error || 'Failed to fetch categories'
+    };
+  }
+};
+
+export const getVehicleStatuses = async (): Promise<{ success: boolean; data?: { [key: string]: number }; error?: string }> => {
+  try {
+    const response = await api.get(API_ENDPOINTS.VEHICLE_STATUSES);
+    if (response.data.status === 'success' && response.data.data) {
+      return { 
+        success: true, 
+        data: response.data.data
+      };
+    } else {
+      return {
+        success: false,
+        error: response.data.message || 'Failed to fetch vehicle statuses'
+      };
+    }
+  } catch (error: unknown) {
+    const axiosError = error as AxiosError<ErrorResponse>;
+    return {
+      success: false,
+      error: axiosError.response?.data?.message || axiosError.response?.data?.error || 'Failed to fetch vehicle statuses'
     };
   }
 };

@@ -22,6 +22,15 @@ interface ManualPaymentModalProps {
   onClose: () => void;
   onSuccess: (updatedPayment?: Payment) => void;
   editingPayment?: Payment | null;
+  preloadedVehicle?: {
+    vehicle_id?: string;
+    make: string;
+    model: string;
+    year: string;
+    price: string;
+    status: string;
+    image?: string;
+  } | null;
 }
 
 interface CustomerForm {
@@ -48,6 +57,7 @@ const ManualPaymentModal = ({
   onClose,
   onSuccess,
   editingPayment,
+  preloadedVehicle,
 }: ManualPaymentModalProps) => {
   const [step, setStep] = useState<'customer' | 'payment'>('customer');
   const [customerType, setCustomerType] = useState<'registered' | 'unregistered'>('registered');
@@ -85,11 +95,12 @@ const ManualPaymentModal = ({
   }, [isOpen, customerType]);
 
   // Fetch vehicles when modal opens and payment type is 'vehicle_hold' or 'vehicle_purchase'
+  // But don't fetch if we have a preloaded vehicle
   useEffect(() => {
-    if (isOpen && (paymentForm.type === 'vehicle_hold' || paymentForm.type === 'vehicle_purchase')) {
+    if (isOpen && (paymentForm.type === 'vehicle_hold' || paymentForm.type === 'vehicle_purchase') && !preloadedVehicle) {
       fetchVehicles();
     }
-  }, [isOpen, paymentForm.type]);
+  }, [isOpen, paymentForm.type, preloadedVehicle]);
 
   // Initialize form with existing payment data if editing
   useEffect(() => {
@@ -97,6 +108,60 @@ const ManualPaymentModal = ({
       initializeFormWithPayment(editingPayment);
     }
   }, [isOpen, editingPayment]);
+
+  // Handle preloaded vehicle data - Run with higher priority
+  useEffect(() => {
+    if (isOpen && preloadedVehicle && !editingPayment) {
+      // Set payment type based on vehicle status
+      const paymentType = preloadedVehicle.status === 'sold' ? 'vehicle_purchase' : 'vehicle_hold';
+      
+      // Calculate amount based on payment type
+      const baseAmount = parseFloat(preloadedVehicle.price);
+      const amount = paymentType === 'vehicle_hold' ? (baseAmount * 0.05) : baseAmount; // 5% for hold
+      
+      // Set the selected vehicle with more complete data first
+      const vehicleData = {
+        id: preloadedVehicle.vehicle_id || '',
+        make: preloadedVehicle.make,
+        model: preloadedVehicle.model,
+        year: parseInt(preloadedVehicle.year),
+        price: baseAmount,
+        status: preloadedVehicle.status as any,
+        // Add other required fields with default values
+        vin: preloadedVehicle.vehicle_id ? `VIN-${preloadedVehicle.vehicle_id}` : '',
+        mileage: 0,
+        transmission: '',
+        body_type: '',
+        fuel_type: '',
+        condition: '',
+        description: `${preloadedVehicle.year} ${preloadedVehicle.make} ${preloadedVehicle.model}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        images: preloadedVehicle.image ? [preloadedVehicle.image] : [], // Include the preloaded image
+        stock_number: preloadedVehicle.vehicle_id ? `STK-${preloadedVehicle.vehicle_id}` : ''
+      };
+      
+      setSelectedVehicle(vehicleData);
+
+      // Then set the payment form with a slight delay to ensure vehicle is set first
+      setTimeout(() => {
+        setPaymentForm(prev => ({
+          ...prev,
+          type: paymentType,
+          amount: amount.toString(),
+          description: `${preloadedVehicle.year} ${preloadedVehicle.make} ${preloadedVehicle.model} - ${preloadedVehicle.status === 'sold' ? 'Purchase' : 'Hold'}`
+        }));
+      }, 100);
+
+      // Skip to payment step if vehicle is preloaded
+      setStep('payment');
+      
+      // Clear the location state after processing the preloaded vehicle
+      setTimeout(() => {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }, 200);
+    }
+  }, [isOpen, preloadedVehicle, editingPayment]);
 
   // Set selected vehicle when vehicles are loaded and we have an editing payment
   useEffect(() => {
@@ -604,6 +669,11 @@ const ManualPaymentModal = ({
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Amount ($) *
+                      {preloadedVehicle && (
+                        <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Preloaded
+                        </span>
+                      )}
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -615,7 +685,9 @@ const ManualPaymentModal = ({
                         onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
                         min="0"
                         step="0.01"
-                        className="w-full pl-8 pr-4 py-4 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-base"
+                        className={`w-full pl-8 pr-4 py-4 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-base ${
+                          preloadedVehicle ? 'border-blue-300 bg-blue-50' : 'border-gray-300'
+                        }`}
                         required
                       />
                     </div>
@@ -643,6 +715,11 @@ const ManualPaymentModal = ({
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Payment Type *
+                      {preloadedVehicle && (
+                        <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Preloaded
+                        </span>
+                      )}
                     </label>
                     <select
                       value={paymentForm.type}
@@ -650,7 +727,9 @@ const ManualPaymentModal = ({
                         setPaymentForm({ ...paymentForm, type: e.target.value });
                         setSelectedVehicle(null); // Reset vehicle selection when type changes
                       }}
-                      className="w-full px-4 py-4 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-base"
+                      className={`w-full px-4 py-4 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-base ${
+                        preloadedVehicle ? 'border-blue-300 bg-blue-50' : 'border-gray-300'
+                      }`}
                       required
                     >
                       <option value="service">Service</option>
@@ -691,7 +770,7 @@ const ManualPaymentModal = ({
                 </div>
 
                 {/* Vehicle Selection for Vehicle Payments */}
-                {isVehiclePayment && (
+                {isVehiclePayment && !preloadedVehicle && (
                   <div className="mt-6">
                     <label className="block text-sm font-semibold text-gray-700 mb-3">
                       Select Vehicle *
@@ -838,81 +917,100 @@ const ManualPaymentModal = ({
                       )}
                     </div>
 
-                    {/* Selected Vehicle Details */}
-                    {selectedVehicle && (
-                      <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl shadow-sm">
-                        <div className="flex items-start space-x-4">
-                          {/* Selected Vehicle Image */}
-                          <div className="flex-shrink-0">
-                            <div className="w-24 h-20 bg-white rounded-lg overflow-hidden border-2 border-green-200 shadow-sm">
-                              {selectedVehicle.images && selectedVehicle.images.length > 0 ? (
-                                <img
-                                  src={selectedVehicle.images[0]}
-                                  alt={`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                    target.nextElementSibling?.classList.remove('hidden');
-                                  }}
-                                />
-                              ) : null}
-                              <div className={`w-full h-full flex items-center justify-center ${selectedVehicle.images && selectedVehicle.images.length > 0 ? 'hidden' : ''}`}>
-                                <Car className="h-10 w-10 text-gray-400" />
-                              </div>
-                            </div>
-                          </div>
+                  </div>
+                )}
 
-                          {/* Selected Vehicle Info */}
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <CheckCircle className="h-5 w-5 text-green-600" />
-                              <h4 className="text-lg font-bold text-gray-900">
-                                Selected Vehicle
-                              </h4>
+                {/* Selected Vehicle Details - Always show for vehicle payments */}
+                {isVehiclePayment && selectedVehicle && (
+                  <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl shadow-sm">
+                    {/* Preloaded Vehicle Indicator */}
+                    {preloadedVehicle && (
+                      <div className="mb-4 p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg text-white">
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="h-5 w-5" />
+                          <span className="font-semibold">Vehicle Preloaded from Inventory</span>
+                        </div>
+                        <p className="text-blue-100 text-sm mt-1">
+                          Vehicle details have been automatically loaded from the inventory form.
+                        </p>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-start space-x-4">
+                      {/* Selected Vehicle Image */}
+                      <div className="flex-shrink-0">
+                        <div className="w-24 h-20 bg-white rounded-lg overflow-hidden border-2 border-green-200 shadow-sm">
+                          {selectedVehicle.images && selectedVehicle.images.length > 0 ? (
+                            <img
+                              src={selectedVehicle.images[0]}
+                              alt={`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                target.nextElementSibling?.classList.remove('hidden');
+                              }}
+                            />
+                          ) : null}
+                          <div className={`w-full h-full flex items-center justify-center ${selectedVehicle.images && selectedVehicle.images.length > 0 ? 'hidden' : ''}`}>
+                            <Car className="h-10 w-10 text-gray-400" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Selected Vehicle Info */}
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <h4 className="text-lg font-bold text-gray-900">
+                            {preloadedVehicle ? 'Preloaded Vehicle' : 'Selected Vehicle'}
+                          </h4>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <h5 className="font-semibold text-gray-900 text-lg">
+                              {selectedVehicle.year} {selectedVehicle.make} {selectedVehicle.model}
+                            </h5>
+                            <p className="text-sm text-gray-600">
+                              Stock #{selectedVehicle.stock_number} • VIN: {selectedVehicle.vin}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {selectedVehicle.mileage ? `${selectedVehicle.mileage.toLocaleString()} miles` : 'Mileage N/A'} • {selectedVehicle.exterior_color || 'Color N/A'}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-gray-900">
+                              ${selectedVehicle.price.toLocaleString()}
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <h5 className="font-semibold text-gray-900 text-lg">
-                                  {selectedVehicle.year} {selectedVehicle.make} {selectedVehicle.model}
-                                </h5>
-                                <p className="text-sm text-gray-600">
-                                  Stock #{selectedVehicle.stock_number} • VIN: {selectedVehicle.vin}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                  {selectedVehicle.mileage ? `${selectedVehicle.mileage.toLocaleString()} miles` : 'Mileage N/A'} • {selectedVehicle.exterior_color || 'Color N/A'}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-2xl font-bold text-gray-900">
-                                  ${selectedVehicle.price.toLocaleString()}
-                                </div>
-                                <div className="text-sm text-gray-600">
-                                  {paymentForm.type === 'vehicle_purchase' ? 'Full Purchase Price' : 'Hold Deposit (5%)'}
-                                </div>
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {paymentForm.type === 'vehicle_hold' && `Hold amount: $${(selectedVehicle.price * 0.05).toLocaleString()}`}
-                                </div>
-                              </div>
+                            <div className="text-sm text-gray-600">
+                              {paymentForm.type === 'vehicle_purchase' ? 'Full Purchase Price' : 'Hold Deposit (5%)'}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {paymentForm.type === 'vehicle_hold' && `Hold amount: $${(selectedVehicle.price * 0.05).toLocaleString()}`}
                             </div>
                           </div>
                         </div>
                       </div>
-                    )}
-
-
+                    </div>
                   </div>
                 )}
 
                 <div className="mt-6">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Payment Description *
+                    {preloadedVehicle && (
+                      <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Preloaded
+                      </span>
+                    )}
                   </label>
                   <textarea
                     value={paymentForm.description}
                     onChange={(e) => setPaymentForm({ ...paymentForm, description: e.target.value })}
                     rows={4}
-                    className="w-full px-4 py-4 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none text-base"
+                    className={`w-full px-4 py-4 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none text-base ${
+                      preloadedVehicle ? 'border-blue-300 bg-blue-50' : 'border-gray-300'
+                    }`}
                     placeholder={
                       selectedVehicle 
                         ? `${paymentForm.type === 'vehicle_purchase' ? 'Vehicle purchase' : 'Vehicle hold'} for ${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`

@@ -21,6 +21,8 @@ import {
 import React, { useEffect, useState } from 'react';
 import { addVehicle, updateVehicle } from '../../services/inventory';
 import { Vehicle } from '../../types/vehicle';
+import { useNavigate } from 'react-router-dom';
+import { BODY_TYPES, FUEL_TYPES, TRANSMISSION_TYPES, VEHICLE_CONDITIONS, VEHICLE_STATUSES } from '../../constants/enums';
 
 interface ExistingImage {
   id?: string;
@@ -72,6 +74,8 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
   });
 
   const [loading, setLoading] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<string>('');
 
   const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
@@ -83,6 +87,8 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
   // Add state for editing a feature
   const [editingFeatureIndex, setEditingFeatureIndex] = useState<number | null>(null);
   const [editingFeatureValue, setEditingFeatureValue] = useState('');
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (initialData) {
@@ -179,6 +185,20 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+    
+    // Handle status changes specially
+    if (name === 'status') {
+      const currentStatus = formData.status;
+      const newStatus = value;
+      
+      // If trying to change to sold or reserved, show payment modal
+      if ((newStatus === 'sold' || newStatus === 'reserved') && currentStatus !== newStatus) {
+        setPendingStatusChange(newStatus);
+        setShowPaymentModal(true);
+        return; // Don't update the form data yet
+      }
+    }
+    
     if (type === 'checkbox') {
         // Only HTMLInputElement has 'checked'
         const checkbox = e.target as HTMLInputElement;
@@ -366,6 +386,39 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleNavigateToPayment = () => {
+    // Get the first available image (existing or new)
+    let firstImage = '';
+    if (existingImages.length > 0) {
+      firstImage = existingImages[0].url;
+    } else if (previewUrls.length > 0) {
+      firstImage = previewUrls[0];
+    }
+    
+    const vehicleData = {
+      vehicle_id: initialData?.id,
+      make: formData.make,
+      model: formData.model,
+      year: formData.year,
+      price: formData.price,
+      status: pendingStatusChange,
+      image: firstImage // Include the first image
+    };
+    
+    // Navigate to payments page with vehicle data
+    navigate('/admin/payments', { 
+      state: { 
+        preloadVehicle: vehicleData,
+        action: 'add_payment'
+      } 
+    });
+  };
+
+  const handleCancelStatusChange = () => {
+    setShowPaymentModal(false);
+    setPendingStatusChange('');
   };
 
   return (
@@ -615,11 +668,21 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 >
                   <option value="" disabled>Select status</option>
-                  <option value="available">Available for Sale</option>
-                  <option value="reserved">Reserved - Pending</option>
-                  <option value="sold">Sold - Completed</option>
-                  <option value="under_maintenance">In Service - Maintenance</option>
-                  <option value="under_inspection">In Service - Inspection</option>
+                  {Object.entries(VEHICLE_STATUSES).map(([key, value]) => {
+                    const displayText = {
+                      'AVAILABLE': 'Available for Sale',
+                      'RESERVED': 'Reserved - Pending',
+                      'SOLD': 'Sold - Completed',
+                      'UNDER_MAINTENANCE': 'In Service - Maintenance',
+                      'UNDER_INSPECTION': 'In Service - Inspection'
+                    }[key] || key.charAt(0) + key.slice(1).toLowerCase().replace(/_/g, ' ');
+                    
+                    return (
+                      <option key={value} value={value}>
+                        {displayText}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             </div>
@@ -678,19 +741,25 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 >
                   <option value="">Select transmission</option>
-                  <option value="manual">Manual</option>
-                  <option value="automatic">Automatic</option>
-                  <option value="cvt">CVT</option>
-                  <option value="amt">AMT</option>
-                  <option value="dct">DCT</option>
-                  <option value="dsg">DSG</option>
-                  <option value="semi_automatic">Semi-Automatic</option>
-                  <option value="ivt">IVT</option>
-                  <option value="hydrostatic">Hydrostatic</option>
-                  <option value="mmt">MMT</option>
-                  <option value="hybird">Hybird</option>
-                  <option value="torque_converter">Torque Converter</option>
-                  <option value="tip_tronic">Tip-Tronic</option>
+                  {Object.entries(TRANSMISSION_TYPES).map(([key, value]) => {
+                    const displayText = {
+                      'CVT': 'CVT',
+                      'AMT': 'AMT',
+                      'DCT': 'DCT',
+                      'DSG': 'DSG',
+                      'IVT': 'IVT',
+                      'MMT': 'MMT',
+                      'HYBIRD': 'Hybird',
+                      'TORQUE_CONVERTER': 'Torque Converter',
+                      'TIP_TRONIC': 'Tip-Tronic'
+                    }[key] || key.charAt(0) + key.slice(1).toLowerCase().replace(/_/g, ' ');
+                    
+                    return (
+                      <option key={value} value={value}>
+                        {displayText}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -707,18 +776,11 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 >
                   <option value="">Select body type</option>
-                  <option value="sports">Sports</option>
-                  <option value="sedan">Sedan</option>
-                  <option value="hatchback">Hatchback</option>
-                  <option value="suv">SUV</option>
-                  <option value="coupe">Coupe</option>
-                  <option value="convertible">Convertible</option>
-                  <option value="van">Van</option>
-                  <option value="minivan">Minivan</option>
-                  <option value="wagon">Wagon</option>
-                  <option value="pickup_truck">Pickup Truck</option>
-                  <option value="cargo_van">Cargo Van</option>
-                  <option value="bus">Bus</option>
+                  {Object.entries(BODY_TYPES).map(([key, value]) => (
+                    <option key={value} value={value}>
+                      {key.charAt(0) + key.slice(1).toLowerCase().replace(/_/g, ' ')}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -735,11 +797,11 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 >
                   <option value="">Select fuel type</option>
-                  <option value="gasoline">Gasoline</option>
-                  <option value="diesel">Diesel</option>
-                  <option value="electric">Electric</option>
-                  <option value="hybrid">Hybrid</option>
-                  <option value="plug_in_hybrid">Plug-in Hybrid</option>
+                  {Object.entries(FUEL_TYPES).map(([key, value]) => (
+                    <option key={value} value={value}>
+                      {key.charAt(0) + key.slice(1).toLowerCase().replace(/_/g, ' ')}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -771,12 +833,11 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 >
                   <option value="">Select condition</option>
-                  <option value="new">New</option>
-                  <option value="used">Used</option>
-                  <option value="certified_pre_owned">Certified Pre-Owned</option>
-                  <option value="excellent">Excellent</option>
-                  <option value="good">Good</option>
-                  <option value="fair">Fair</option>
+                  {Object.entries(VEHICLE_CONDITIONS).map(([key, value]) => (
+                    <option key={value} value={value}>
+                      {key.charAt(0) + key.slice(1).toLowerCase().replace(/_/g, ' ')}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -1169,6 +1230,56 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Payment Required Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-center mb-4">
+              <div className="p-2 bg-yellow-100 rounded-lg mr-3">
+                <DollarSign className="h-6 w-6 text-yellow-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">
+                Payment Required
+              </h3>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              To change the vehicle status to <span className="font-semibold text-blue-600">
+                {pendingStatusChange === 'sold' ? 'Sold' : 'Reserved'}
+              </span>, you need to create a payment record first.
+            </p>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <h4 className="font-semibold text-blue-800 mb-2">Vehicle Details:</h4>
+              <div className="text-sm text-blue-700">
+                <p><span className="font-medium">Make:</span> {formData.make}</p>
+                <p><span className="font-medium">Model:</span> {formData.model}</p>
+                <p><span className="font-medium">Year:</span> {formData.year}</p>
+                <p><span className="font-medium">Price:</span> ${formData.price}</p>
+              </div>
+            </div>
+            
+            <div className="flex space-x-3">
+              <button
+                type="button"
+                onClick={handleNavigateToPayment}
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-semibold"
+              >
+                <DollarSign className="h-4 w-4 inline mr-2" />
+                Go to Payments
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelStatusChange}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   DollarSign, 
   Download, 
@@ -43,6 +43,7 @@ interface Pagination {
 
 const Payments: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -116,6 +117,15 @@ const Payments: React.FC = () => {
   useEffect(() => {
     fetchAllPayments();
   }, [searchTerm, sortField, sortDirection, currentPage, itemsPerPage, filterStatus, filterType]);
+
+  // Handle preloaded vehicle data from vehicle form
+  useEffect(() => {
+    if (location.state?.preloadVehicle && location.state?.action === 'add_payment') {
+      setShowManualPaymentModal(true);
+      // Don't clear the location state immediately - let the modal use it first
+      // navigate(location.pathname, { replace: true });
+    }
+  }, [location.state, navigate, location.pathname]);
   
   // Filter payments based on search term only (server handles status and type filtering)
   const filteredPayments = payments.filter(payment => {
@@ -957,12 +967,19 @@ const Payments: React.FC = () => {
         <ManualPaymentModal
           isOpen={showManualPaymentModal}
           onClose={() => setShowManualPaymentModal(false)}
-          onSuccess={() => {
+          onSuccess={(updatedPayment) => {
             setShowManualPaymentModal(false);
             fetchAllPayments();
+            if (location.state?.preloadVehicle) {
+              setToastMessage('Payment created successfully! Vehicle status will be updated.');
+              setToastType('success');
+            }
           }}
+          preloadedVehicle={location.state?.preloadVehicle || null}
         />
       )}
+      
+
 
       {/* Edit Payment Modal */}
       {showEditModal && editingPayment && (
