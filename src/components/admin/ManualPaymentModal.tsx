@@ -98,6 +98,16 @@ const ManualPaymentModal = ({
     }
   }, [isOpen, editingPayment]);
 
+  // Set selected vehicle when vehicles are loaded and we have an editing payment
+  useEffect(() => {
+    if (editingPayment && editingPayment.vehicle_id && vehicles.length > 0) {
+      const vehicle = vehicles.find(v => v.id === editingPayment.vehicle_id || v.id.toString() === editingPayment.vehicle_id?.toString());
+      if (vehicle) {
+        setSelectedVehicle(vehicle);
+      }
+    }
+  }, [vehicles, editingPayment]);
+
   const initializeFormWithPayment = (payment: Payment) => {
     // Map backend payment type to frontend form type
     let paymentType = 'service';
@@ -156,14 +166,6 @@ const ManualPaymentModal = ({
       }));
     }
     
-    // Set selected vehicle if vehicle_id exists
-    if (payment.vehicle_id && vehicles.length > 0) {
-      // First, try to find the vehicle in the vehicles list
-      const vehicle = vehicles.find(v => v.id === payment.vehicle_id || v.id.toString() === payment.vehicle_id?.toString());
-      if (vehicle) {
-        setSelectedVehicle(vehicle);
-      }
-    }
     // Go directly to payment step when editing
     setStep('payment');
   };

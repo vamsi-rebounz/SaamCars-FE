@@ -614,12 +614,12 @@ const AddVehicleForm: React.FC<AddVehicleFormProps> = ({
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 >
-                  <option value="">Select status</option>
-                  <option value="available">Available</option>
-                  <option value="reserved">Reserved</option>
-                  <option value="sold">Sold</option>
-                  <option value="under_maintenance">Under Maintenance</option>
-                  <option value="under_inspection">Under Inspection</option>
+                  <option value="" disabled>Select status</option>
+                  <option value="available">Available for Sale</option>
+                  <option value="reserved">Reserved - Pending</option>
+                  <option value="sold">Sold - Completed</option>
+                  <option value="under_maintenance">In Service - Maintenance</option>
+                  <option value="under_inspection">In Service - Inspection</option>
                 </select>
               </div>
             </div>

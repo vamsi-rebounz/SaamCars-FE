@@ -95,8 +95,9 @@ const Inventory: React.FC = () => {
         sort_order: sortDirection,
         page: currentPage,
         limit: itemsPerPage,
-        ...(filterStatus && { status: filterStatus }),
+        ...(filterStatus ? { status: filterStatus } : { status: 'all' }),
       };
+      console.log('Sending filters to API:', filters);
       const response = await getInventory(filters);
       console.log('API response:', response);
       if (response.success && response.vehicles) {
@@ -193,6 +194,7 @@ const Inventory: React.FC = () => {
   };
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    console.log('Filter change:', e.target.value);
     setFilterStatus(e.target.value);
     setCurrentPage(1);
   };
@@ -237,10 +239,12 @@ const Inventory: React.FC = () => {
         return { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-100', border: 'border-green-200' };
       case 'sold':
         return { icon: Tag, color: 'text-red-600', bg: 'bg-red-100', border: 'border-red-200' };
-      case 'pending':
-        return { icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-100', border: 'border-yellow-200' };
-      case 'maintenance':
+      case 'under_maintenance':
         return { icon: AlertCircle, color: 'text-orange-600', bg: 'bg-orange-100', border: 'border-orange-200' };
+      case 'under_inspection':
+        return { icon: Clock, color: 'text-blue-600', bg: 'bg-blue-100', border: 'border-blue-200' };
+      case 'reserved':
+        return { icon: Tag, color: 'text-purple-600', bg: 'bg-purple-100', border: 'border-purple-200' };
       default:
         return { icon: Clock, color: 'text-gray-600', bg: 'bg-gray-100', border: 'border-gray-200' };
     }
@@ -361,12 +365,13 @@ const Inventory: React.FC = () => {
                 onChange={handleFilterChange}
                 className="block w-full pl-4 pr-8 py-2 text-sm border-b-[1.5px] border-blue-600 rounded-none bg-transparent focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors"
               >
-                <option value="" disabled>Vehicle status</option>
-                <option value="available">Available</option>
-                <option value="sold">Sold</option>
-                <option value="under_maintenance">Under Maintenance</option>
-                <option value="reserved">Reserved</option>
-                <option value="under_inspection">Under Inspection</option>
+                <option value="" disabled>Filter by status</option>
+                <option value="all">All</option>
+                <option value="available">Available for Sale</option>
+                <option value="reserved">Reserved - Pending</option>
+                <option value="sold">Sold - Completed</option>
+                <option value="under_maintenance">In Service - Maintenance</option>
+                <option value="under_inspection">In Service - Inspection</option>
               </select>
             </div>
             {/* Items per page */}
@@ -421,10 +426,14 @@ const Inventory: React.FC = () => {
                 <Car className="h-full w-full" />
               </div>
               <h3 className="text-2xl font-bold text-gray-800 mb-3 tracking-wide">
-                {error ? 'Error loading vehicles' : 'NO VEHICLES ARE LISTED'}
+                {error ? 'Error loading vehicles' : 'No vehicles found'}
               </h3>
               <p className="text-gray-500 text-lg">
-                {error ? 'There was an issue loading the inventory. Please try refreshing the page.' : ''}
+                {error ? 'There was an issue loading the inventory. Please try refreshing the page.' : 
+                  (searchInput || filterStatus !== '') ? 
+                    `No vehicles match your current search and filter criteria. Try adjusting your search terms or filters.` :
+                    'No vehicles are currently in the inventory. Add your first vehicle to get started.'
+                }
               </p>
             </div>
           </div>
@@ -498,7 +507,7 @@ const Inventory: React.FC = () => {
                         className="hover:bg-gray-50 transition-colors cursor-pointer group"
                         onClick={() => handleVehicleClick(vehicle.id)}
                       >
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4">
                           <div className="flex items-center">
                             <div className="h-12 w-12 flex-shrink-0">
                               {!imageErrors[vehicle.id] && vehicle.images && vehicle.images[0] ? (
@@ -514,8 +523,8 @@ const Inventory: React.FC = () => {
                                 </div>
                               )}
                             </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-semibold text-gray-900">
+                            <div className="ml-4 min-w-0 flex-1">
+                              <div className="text-sm font-semibold text-gray-900 break-words">
                                 {vehicle.year} {vehicle.make} {vehicle.model}
                               </div>
                               <div className="text-sm text-gray-500">
@@ -538,14 +547,19 @@ const Inventory: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusInfo.bg} ${statusInfo.border} ${statusInfo.color}`}>
                             <StatusIcon className="h-3 w-3 mr-1" />
-                            {vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
+                            {vehicle.status === 'available' ? 'Available for Sale' :
+                             vehicle.status === 'reserved' ? 'Reserved - Pending' :
+                             vehicle.status === 'sold' ? 'Sold - Completed' :
+                             vehicle.status === 'under_maintenance' ? 'In Service - Maintenance' :
+                             vehicle.status === 'under_inspection' ? 'In Service - Inspection' :
+                             vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <DollarSign className="h-4 w-4 text-green-600 mr-1" />
                             <span className="text-sm font-semibold text-gray-900">
-                              ${vehicle.price.toLocaleString()}
+                              {vehicle.price.toLocaleString()}
                             </span>
                           </div>
                         </td>

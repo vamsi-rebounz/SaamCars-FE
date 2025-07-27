@@ -51,7 +51,7 @@ const Toast: React.FC<ToastProps> = ({
   const styles = getToastStyles();
 
   return (
-    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-slide-down w-full max-w-md mx-auto px-4">
+    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[9999] animate-slide-down w-full max-w-md mx-auto px-4 pointer-events-auto">
       <div className={`${styles.bg} ${styles.border} ${styles.text} border rounded-lg shadow-lg p-4 flex items-center justify-between`}>
         <div className="flex items-center space-x-3">
           {styles.icon}

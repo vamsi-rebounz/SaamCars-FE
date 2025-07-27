@@ -84,9 +84,9 @@ const AllVehicles: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const validSortFields = isAdmin 
-        ? ['date_added', 'price', 'year', 'mileage', 'make', 'bought_price', 'repair_costs', 'sold_price', 'profit']
-        : ['date_added', 'price', 'year', 'mileage', 'make'];
+              const validSortFields = isAdmin 
+          ? ['date_added', 'price', 'year', 'make', 'bought_price', 'repair_costs', 'sold_price', 'profit']
+          : ['date_added', 'price', 'year', 'make'];
       
       const filters = {
         search: debouncedSearch,
@@ -152,7 +152,6 @@ const AllVehicles: React.FC = () => {
       make: 'make',
       year: 'year',
       price: 'price',
-      mileage: 'mileage',
       created_at: 'date_added',
       ...(isAdmin && {
         bought_price: 'bought_price',
@@ -226,10 +225,12 @@ const AllVehicles: React.FC = () => {
         return { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-100', border: 'border-green-200' };
       case 'sold':
         return { icon: Tag, color: 'text-red-600', bg: 'bg-red-100', border: 'border-red-200' };
-      case 'pending':
-        return { icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-100', border: 'border-yellow-200' };
-      case 'maintenance':
+      case 'under_maintenance':
         return { icon: AlertCircle, color: 'text-orange-600', bg: 'bg-orange-100', border: 'border-orange-200' };
+      case 'under_inspection':
+        return { icon: Clock, color: 'text-blue-600', bg: 'bg-blue-100', border: 'border-blue-200' };
+      case 'reserved':
+        return { icon: Tag, color: 'text-purple-600', bg: 'bg-purple-100', border: 'border-purple-200' };
       default:
         return { icon: Clock, color: 'text-gray-600', bg: 'bg-gray-100', border: 'border-gray-200' };
     }
@@ -309,8 +310,8 @@ const AllVehicles: React.FC = () => {
                   <Car className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">All Vehicles</h1>
-                  <p className="text-gray-600 mt-1">View all vehicles in the system</p>
+                                <h1 className="text-3xl font-bold text-gray-900">Sales Tracker</h1>
+              <p className="text-gray-600 mt-1">Track sales performance, profits, and vehicle transaction history</p>
                 </div>
               </div>
             </div>
@@ -344,7 +345,8 @@ const AllVehicles: React.FC = () => {
                   onChange={e => setPurchaseType(e.target.value)}
                   className="block w-full pl-4 pr-8 py-2 text-sm border-b-[1.5px] border-blue-600 rounded-none bg-transparent focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors"
                 >
-                  <option value="">All</option>
+                  <option value="" disabled>Purchase Type</option>
+                  <option value="all">All</option>
                   <option value="auction">Bought in Auction</option>
                   <option value="individual">Bought from Individual</option>
                 </select>
@@ -822,20 +824,7 @@ const AllVehicles: React.FC = () => {
                         </th>
                       </>
                     )}
-                    <th 
-                      scope="col" 
-                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                      onClick={() => handleSort('mileage')}
-                    >
-                      <div className="flex items-center">
-                        Mileage
-                        {sortField === 'mileage' && (
-                          sortDirection === 'asc' ? 
-                            <ChevronUp className="inline h-4 w-4 ml-2 text-blue-600" /> : 
-                            <ChevronDown className="inline h-4 w-4 ml-2 text-blue-600" />
-                        )}
-                      </div>
-                    </th>
+
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -889,7 +878,12 @@ const AllVehicles: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusInfo.bg} ${statusInfo.border} ${statusInfo.color}`}>
                             <StatusIcon className="h-3 w-3 mr-1" />
-                            {vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
+                            {vehicle.status === 'available' ? 'Available for Sale' :
+                             vehicle.status === 'reserved' ? 'Reserved - Pending' :
+                             vehicle.status === 'sold' ? 'Sold - Completed' :
+                             vehicle.status === 'under_maintenance' ? 'In Service - Maintenance' :
+                             vehicle.status === 'under_inspection' ? 'In Service - Inspection' :
+                             vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
                           </div>
                         </td>
                         {isAdmin && (
@@ -898,7 +892,7 @@ const AllVehicles: React.FC = () => {
                               <div className="flex items-center">
                                 <DollarSign className="h-4 w-4 text-orange-600 mr-1" />
                                 <span className="text-sm text-gray-900">
-                                  {vehicle.bought_price ? `$${vehicle.bought_price.toLocaleString()}` : 'N/A'}
+                                  {vehicle.bought_price ? vehicle.bought_price.toLocaleString() : 'N/A'}
                                 </span>
                               </div>
                             </td>
@@ -906,7 +900,7 @@ const AllVehicles: React.FC = () => {
                               <div className="flex items-center">
                                 <DollarSign className="h-4 w-4 text-yellow-600 mr-1" />
                                 <span className="text-sm text-gray-900">
-                                  {vehicle.repair_costs ? `$${vehicle.repair_costs.toLocaleString()}` : 'N/A'}
+                                  {vehicle.repair_costs ? vehicle.repair_costs.toLocaleString() : 'N/A'}
                                 </span>
                               </div>
                             </td>
@@ -914,7 +908,7 @@ const AllVehicles: React.FC = () => {
                               <div className="flex items-center">
                                 <DollarSign className="h-4 w-4 text-blue-600 mr-1" />
                                 <span className="text-sm font-semibold text-gray-900">
-                                  ${vehicle.price.toLocaleString()}
+                                  {vehicle.price.toLocaleString()}
                                 </span>
                               </div>
                             </td>
@@ -922,7 +916,7 @@ const AllVehicles: React.FC = () => {
                               <div className="flex items-center">
                                 <DollarSign className="h-4 w-4 text-green-600 mr-1" />
                                 <span className="text-sm text-gray-900">
-                                  {vehicle.sold_price ? `$${vehicle.sold_price.toLocaleString()}` : 'N/A'}
+                                  {vehicle.sold_price ? vehicle.sold_price.toLocaleString() : 'N/A'}
                                 </span>
                               </div>
                             </td>
@@ -930,18 +924,13 @@ const AllVehicles: React.FC = () => {
                               <div className="flex items-center">
                                 <DollarSign className={`h-4 w-4 mr-1 ${vehicle.sold_price && vehicle.bought_price ? (vehicle.sold_price - vehicle.bought_price - (vehicle.repair_costs || 0)) > 0 ? 'text-green-600' : 'text-red-600' : 'text-gray-600'}`} />
                                 <span className={`text-sm font-semibold ${vehicle.sold_price && vehicle.bought_price ? (vehicle.sold_price - vehicle.bought_price - (vehicle.repair_costs || 0)) > 0 ? 'text-green-600' : 'text-red-600' : 'text-gray-600'}`}>
-                                  {vehicle.sold_price && vehicle.bought_price ? `$${(vehicle.sold_price - vehicle.bought_price - (vehicle.repair_costs || 0)).toLocaleString()}` : 'N/A'}
+                                  {vehicle.sold_price && vehicle.bought_price ? (vehicle.sold_price - vehicle.bought_price - (vehicle.repair_costs || 0)).toLocaleString() : 'N/A'}
                                 </span>
                               </div>
                             </td>
                           </>
                         )}
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Car className="h-4 w-4 mr-2 text-gray-400" />
-                            {vehicle.mileage ? `${vehicle.mileage.toLocaleString()} mi` : 'N/A'}
-                          </div>
-                        </td>
+
                       </tr>
                     );
                   })}

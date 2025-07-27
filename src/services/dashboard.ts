@@ -3,48 +3,41 @@ import { AxiosError } from 'axios';
 
 export interface DashboardStats {
   summary: {
-    total_vehicles: number;
-    available_vehicles: number;
-    sold_vehicles: number;
-    total_users: number;
-    new_users_this_month: number;
+    // Financial Metrics
     total_revenue: number;
     revenue_this_month: number;
+    total_profit: number;
+    profit_this_month: number;
+    profit_margin: number;
+    
+    // Inventory Metrics
+    total_vehicles: number;
+    available_vehicles: number;
+    total_inventory_value: number;
+    average_days_on_lot: number;
+    
+    // Payment Metrics
     total_payments: number;
     pending_payments: number;
-    auction_investment: number;
+    outstanding_amount: number;
+    
+    // Profit Breakdown
     auction_profit: number;
-    vehicles_purchased: number;
-    vehicles_sold: number;
-    total_appointments: number;
-    upcoming_appointments: number;
-    test_drives: number;
-    service_appointments: number;
+    auction_roi: number;
+    auction_vehicles_sold: number;
+    individual_profit: number;
+    individual_roi: number;
+    individual_vehicles_sold: number;
+    auction_investment: number;
   };
-  inventory_breakdown: Array<{
-    category: string;
+  vehicle_type_distribution: Array<{
+    type: string;
     count: number;
-    total_value: string;
   }>;
   sales_chart: Array<{
     week: string;
     sales_count: number;
     sales_amount: string;
-  }>;
-  recent_activity: Array<{
-    type: string;
-    id: number;
-    description: string;
-    timestamp: string;
-    status: string;
-  }>;
-  alerts: Array<{
-    alert_id: number;
-    type: string;
-    priority: string;
-    title: string;
-    message: string;
-    created_at: string;
   }>;
   date_range: {
     from: string;

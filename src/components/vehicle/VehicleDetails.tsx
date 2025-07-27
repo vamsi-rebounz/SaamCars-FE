@@ -60,8 +60,12 @@ const VehicleDetails: React.FC = () => {
         return 'bg-green-100 text-green-800';
       case 'sold':
         return 'bg-red-100 text-red-800';
+      case 'under_maintenance':
+        return 'bg-orange-100 text-orange-800';
+      case 'under_inspection':
+        return 'bg-blue-100 text-blue-800';
       case 'reserved':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-purple-100 text-purple-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -80,8 +84,13 @@ const VehicleDetails: React.FC = () => {
               {vehicle.stock_number && (
                 <span className="text-gray-600">Stock #: {vehicle.stock_number}</span>
               )}
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(vehicle.status)}`}>
-                {vehicle.status}
+              <span className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap ${getStatusColor(vehicle.status)}`}>
+                {vehicle.status === 'available' ? 'Available for Sale' :
+                 vehicle.status === 'reserved' ? 'Reserved - Pending' :
+                 vehicle.status === 'sold' ? 'Sold - Completed' :
+                 vehicle.status === 'under_maintenance' ? 'In Service - Maintenance' :
+                 vehicle.status === 'under_inspection' ? 'In Service - Inspection' :
+                 vehicle.status}
               </span>
             </div>
           </div>

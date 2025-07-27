@@ -5,16 +5,18 @@ import AlertState from '../../components/ErrorState';
 import {
   DollarSign,
   Car,
-  Users,
   TrendingUp,
   Calendar,
-  AlertTriangle,
   CheckCircle,
   Clock,
   Tag,
   BarChart3,
-  Gavel,
-  Award
+  Award,
+  Target,
+  Percent,
+  Users,
+  AlertTriangle,
+  TrendingDown
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -71,97 +73,57 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Core Business Metrics - Most important KPIs
-  const coreMetrics = [
+  // Key Business Metrics
+  const keyMetrics = [
     {
       title: 'Total Revenue',
       value: `$${dashboardData.summary.total_revenue.toLocaleString()}`,
       icon: <DollarSign className="h-6 w-6" />,
-      color: 'bg-gradient-to-r from-blue-600 to-blue-700',
+      color: 'bg-gradient-to-r from-green-600 to-green-700',
       subtitle: `$${dashboardData.summary.revenue_this_month.toLocaleString()} this month`
+    },
+    {
+      title: 'Total Profit',
+      value: `$${dashboardData.summary.total_profit.toLocaleString()}`,
+      icon: dashboardData.summary.total_profit >= 0 ? <TrendingUp className="h-6 w-6" /> : <TrendingDown className="h-6 w-6" />,
+      color: dashboardData.summary.profit_margin >= 0 ? 'bg-gradient-to-r from-emerald-600 to-emerald-700' : 'bg-gradient-to-r from-red-600 to-red-700',
+      subtitle: `${dashboardData.summary.profit_margin >= 0 ? '+' : ''}${dashboardData.summary.profit_margin}% ROI`
+    },
+    {
+      title: 'Inventory Value',
+      value: `$${dashboardData.summary.total_inventory_value.toLocaleString()}`,
+      icon: <Tag className="h-6 w-6" />,
+      color: 'bg-gradient-to-r from-purple-600 to-purple-700',
+      subtitle: 'Available vehicles'
     },
     {
       title: 'Total Vehicles',
       value: dashboardData.summary.total_vehicles.toString(),
       icon: <Car className="h-6 w-6" />,
-      color: 'bg-gradient-to-r from-green-600 to-green-700',
+      color: 'bg-gradient-to-r from-blue-600 to-blue-700',
       subtitle: `${dashboardData.summary.available_vehicles} available`
-    },
-    {
-      title: 'Total Users',
-      value: dashboardData.summary.total_users.toString(),
-      icon: <Users className="h-6 w-6" />,
-      color: 'bg-gradient-to-r from-purple-600 to-purple-700',
-      subtitle: `${dashboardData.summary.new_users_this_month} new this month`
-    },
+    }
+  ];
+
+  // Profit Breakdown
+  const profitBreakdown = [
     {
       title: 'Auction Profit',
       value: `$${dashboardData.summary.auction_profit.toLocaleString()}`,
-      icon: <TrendingUp className="h-6 w-6" />,
-      color: 'bg-gradient-to-r from-emerald-600 to-emerald-700',
-      subtitle: `$${dashboardData.summary.auction_investment.toLocaleString()} invested`
-    }
-  ];
-
-  // Financial Performance - Consolidated payment and auction data
-  const financialMetrics = [
-    {
-      title: 'Completed Payments',
-      value: (dashboardData.summary.total_payments - dashboardData.summary.pending_payments).toString(),
-      icon: <CheckCircle className="h-6 w-6" />,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
-      borderColor: 'border-green-200',
-      subtitle: 'Successful transactions'
-    },
-    {
-      title: 'Pending Payments',
-      value: dashboardData.summary.pending_payments.toString(),
-      icon: <Clock className="h-6 w-6" />,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-100',
-      borderColor: 'border-yellow-200',
-      subtitle: 'Awaiting completion'
-    },
-    {
-      title: 'Auction Purchases',
-      value: dashboardData.summary.vehicles_purchased || 0,
-      icon: <Gavel className="h-6 w-6" />,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
-      borderColor: 'border-blue-200',
-      subtitle: 'Vehicles acquired'
-    },
-    {
-      title: 'Auction Sold',
-      value: dashboardData.summary.vehicles_sold || 0,
       icon: <Award className="h-6 w-6" />,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-100',
-      borderColor: 'border-emerald-200',
-      subtitle: 'Vehicles sold'
-    }
-  ];
-
-
-
-  // Inventory Status - Simplified inventory overview
-  const inventoryStatus = [
-    {
-      title: 'Available',
-      value: dashboardData.summary.available_vehicles,
-      icon: <CheckCircle className="h-5 w-5" />,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-      borderColor: 'border-green-200'
+      color: dashboardData.summary.auction_roi >= 0 ? 'text-green-600' : 'text-red-600',
+      bgColor: dashboardData.summary.auction_roi >= 0 ? 'bg-green-100' : 'bg-red-100',
+      borderColor: dashboardData.summary.auction_roi >= 0 ? 'border-green-200' : 'border-red-200',
+      subtitle: `${dashboardData.summary.auction_vehicles_sold} vehicles • ${dashboardData.summary.auction_roi >= 0 ? '+' : ''}${dashboardData.summary.auction_roi}% ROI`
     },
     {
-      title: 'Sold',
-      value: dashboardData.summary.sold_vehicles,
-      icon: <Tag className="h-5 w-5" />,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50',
-      borderColor: 'border-red-200'
+      title: 'Individual Profit',
+      value: `$${dashboardData.summary.individual_profit.toLocaleString()}`,
+      icon: <Users className="h-6 w-6" />,
+      color: dashboardData.summary.individual_roi >= 0 ? 'text-blue-600' : 'text-red-600',
+      bgColor: dashboardData.summary.individual_roi >= 0 ? 'bg-blue-100' : 'bg-red-100',
+      borderColor: dashboardData.summary.individual_roi >= 0 ? 'border-blue-200' : 'border-red-200',
+      subtitle: `${dashboardData.summary.individual_vehicles_sold} vehicles • ${dashboardData.summary.individual_roi >= 0 ? '+' : ''}${dashboardData.summary.individual_roi}% ROI`
     }
   ];
 
@@ -193,16 +155,16 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Core Business Metrics */}
+        {/* Key Business Metrics */}
         <div className="mb-8">
           <div className="flex items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Key Performance Indicators</h2>
+            <h2 className="text-xl font-bold text-gray-900">Key Business Metrics</h2>
             <div className="ml-3 px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
-              This Month
+              Overview
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {coreMetrics.map((metric, index) => (
+            {keyMetrics.map((metric, index) => (
               <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-4">
@@ -217,7 +179,9 @@ const Dashboard: React.FC = () => {
                     <div className="mb-2">
                       <span className="text-2xl font-bold text-gray-900">{metric.value}</span>
                     </div>
-                    <p className="text-xs text-gray-500">{metric.subtitle}</p>
+                    <p className={`text-xs ${metric.title === 'Total Profit' ? (dashboardData.summary.profit_margin >= 0 ? 'text-green-600' : 'text-red-600') : 'text-gray-500'}`}>
+                      {metric.subtitle}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -225,16 +189,16 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Financial Performance */}
+        {/* Profit Breakdown */}
         <div className="mb-8">
           <div className="flex items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Financial Performance</h2>
+            <h2 className="text-xl font-bold text-gray-900">Profit Breakdown</h2>
             <div className="ml-3 px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
-              Live Data
+              Analysis
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {financialMetrics.map((metric, index) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {profitBreakdown.map((metric, index) => (
               <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
                 <div className="flex items-center justify-between mb-4">
                   <div className={`p-3 ${metric.bgColor} rounded-xl`}>
@@ -247,7 +211,15 @@ const Dashboard: React.FC = () => {
                   <p className="text-sm font-medium text-gray-600 mb-1">{metric.title}</p>
                   <p className="text-2xl font-bold text-gray-900">{metric.value}</p>
                   {metric.subtitle && (
-                    <p className="text-xs text-gray-500 mt-1">{metric.subtitle}</p>
+                    <p className={`text-xs mt-1 ${
+                      metric.title === 'Auction Profit' ? 
+                        (dashboardData.summary.auction_roi >= 0 ? 'text-green-600' : 'text-red-600') :
+                      metric.title === 'Individual Profit' ? 
+                        (dashboardData.summary.individual_roi >= 0 ? 'text-blue-600' : 'text-red-600') :
+                      'text-gray-500'
+                    }`}>
+                      {metric.subtitle}
+                    </p>
                   )}
                 </div>
               </div>
@@ -257,32 +229,9 @@ const Dashboard: React.FC = () => {
 
 
 
-        {/* Inventory Status */}
-        <div className="mb-8">
-          <div className="flex items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Inventory & Operations</h2>
-            <div className="ml-3 px-3 py-1 bg-purple-100 text-purple-800 text-xs font-semibold rounded-full">
-              Status
-            </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {inventoryStatus.map((metric, index) => (
-              <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
-                <div className="flex items-center">
-                  <div className={`p-3 rounded-xl ${metric.bgColor} border ${metric.borderColor}`}>
-                    <div className={metric.color}>
-                      {metric.icon}
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600 mb-1">{metric.title}</p>
-                    <p className="text-xl font-bold text-gray-900">{metric.value}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+
+
+
 
         {/* Charts Section */}
         <div className="mb-8">
@@ -294,56 +243,11 @@ const Dashboard: React.FC = () => {
           </div>
           <DashboardCharts 
             salesChart={dashboardData.sales_chart}
-            inventoryBreakdown={dashboardData.inventory_breakdown}
+            vehicleTypeDistribution={dashboardData.vehicle_type_distribution}
           />
         </div>
 
 
-
-        {/* Critical Alerts - Only show if there are critical alerts */}
-        {dashboardData.alerts.filter(alert => alert.priority === 'critical' || alert.priority === 'high').length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Important Alerts</h2>
-              <div className="ml-3 px-3 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full">
-                Critical
-              </div>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">System Notifications</h3>
-                  <AlertTriangle className="h-5 w-5 text-gray-400" />
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  {dashboardData.alerts
-                    .filter(alert => alert.priority === 'critical' || alert.priority === 'high')
-                    .slice(0, 3)
-                    .map((alert) => (
-                    <div key={alert.alert_id} className={`p-4 rounded-xl border-l-4 ${
-                      alert.priority === 'critical' ? 'border-red-500 bg-red-50' : 'border-orange-500 bg-orange-50'
-                    }`}>
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0">
-                          {alert.priority === 'critical' ? 
-                            <AlertTriangle className="h-5 w-5 text-red-500" /> : 
-                            <Clock className="h-5 w-5 text-orange-500" />
-                          }
-                        </div>
-                        <div className="ml-3 flex-1">
-                          <h3 className="text-sm font-semibold text-gray-900">{alert.title}</h3>
-                          <p className="text-sm text-gray-600 mt-1">{alert.message}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

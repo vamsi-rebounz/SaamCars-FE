@@ -102,7 +102,7 @@ const VehicleDetails: React.FC = () => {
   };
 
   const handleBack = () => {
-    // Check if user came from All Vehicles page
+    // Check if user came from Sales Tracker page
     const isFromAllVehicles = location.state?.from === 'all-vehicles' || 
                              document.referrer.includes('/admin/all-vehicles');
     
@@ -140,7 +140,7 @@ const VehicleDetails: React.FC = () => {
             className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
             {location.state?.from === 'all-vehicles' || document.referrer.includes('/admin/all-vehicles') 
-              ? 'Back to All Vehicles' 
+              ? 'Back to Sales Tracker' 
               : 'Back to Inventory'}
           </button>
         </div>
@@ -177,7 +177,7 @@ const VehicleDetails: React.FC = () => {
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
             {location.state?.from === 'all-vehicles' || document.referrer.includes('/admin/all-vehicles') 
-              ? 'Back to All Vehicles' 
+              ? 'Back to Sales Tracker' 
               : 'Back to Inventory'}
           </span>
         </div>
@@ -188,17 +188,23 @@ const VehicleDetails: React.FC = () => {
             {/* Top left: Make/Model/Year */}
             <div className="col-span-1 flex flex-col gap-0 justify-center">
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold text-gray-900 truncate font-sans">
+                <h1 className="text-3xl font-bold text-gray-900 font-sans whitespace-nowrap">
                   {vehicle.make} {vehicle.model}
                 </h1>
-                <span className={`font-semibold px-3 py-1 rounded text-sm shadow-md font-sans ${
+                <span className={`font-semibold px-3 py-1 rounded text-sm shadow-md font-sans whitespace-nowrap ${
                   vehicle.status === 'available' ? 'bg-green-100 text-green-800' :
                   vehicle.status === 'sold' ? 'bg-red-100 text-red-800' :
-                  vehicle.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                  vehicle.status === 'reserved' ? 'bg-blue-100 text-blue-800' :
+                  vehicle.status === 'under_maintenance' ? 'bg-orange-100 text-orange-800' :
+                  vehicle.status === 'under_inspection' ? 'bg-blue-100 text-blue-800' :
+                  vehicle.status === 'reserved' ? 'bg-purple-100 text-purple-800' :
                   'bg-gray-100 text-gray-800'
                 }`}>
-                  {vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
+                  {vehicle.status === 'available' ? 'Available for Sale' :
+                   vehicle.status === 'reserved' ? 'Reserved - Pending' :
+                   vehicle.status === 'sold' ? 'Sold - Completed' :
+                   vehicle.status === 'under_maintenance' ? 'In Service - Maintenance' :
+                   vehicle.status === 'under_inspection' ? 'In Service - Inspection' :
+                   vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
                 </span>
               </div>
               <div className="text-base font-medium text-gray-500 leading-tight font-sans">{vehicle.year}</div>

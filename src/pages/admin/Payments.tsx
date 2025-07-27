@@ -46,8 +46,8 @@ const Payments: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterType, setFilterType] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterType, setFilterType] = useState('');
   const [selectedPayment, setSelectedPayment] = useState<any | null>(null);
   
   // Pagination state
@@ -77,8 +77,8 @@ const Payments: React.FC = () => {
         sort_order: sortDirection,
         page: currentPage,
         limit: itemsPerPage,
-        ...(filterStatus !== 'all' && { status: filterStatus }),
-        ...(filterType !== 'all' && { type: filterType }),
+        ...(filterStatus ? { status: filterStatus } : { status: 'all' }),
+        ...(filterType ? { type: filterType } : { type: 'all' }),
       };
       
       const response = await fetchPayments(filters);
@@ -117,23 +117,10 @@ const Payments: React.FC = () => {
     fetchAllPayments();
   }, [searchTerm, sortField, sortDirection, currentPage, itemsPerPage, filterStatus, filterType]);
   
-  // Filter payments based on search term and filters
+  // Filter payments based on search term only (server handles status and type filtering)
   const filteredPayments = payments.filter(payment => {
     const searchString = `${payment.customer} ${payment.description} ${payment.transactionId}`.toLowerCase();
-    const matchesSearch = searchString.includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || payment.status.toLowerCase() === filterStatus.toLowerCase();
-    
-    // Enhanced type filtering
-    let matchesType = true;
-    if (filterType !== 'all') {
-      if (filterType === 'stripe') {
-        matchesType = payment.is_stripe === true;
-      } else {
-        matchesType = payment.type.toLowerCase() === filterType.toLowerCase();
-      }
-    }
-    
-    return matchesSearch && matchesStatus && matchesType;
+    return searchString.includes(searchTerm.toLowerCase());
   });
 
   // Sort payments
@@ -239,6 +226,7 @@ const Payments: React.FC = () => {
         setToastMessage('Payment deleted successfully');
         setToastType('success');
         fetchAllPayments();
+        setSelectedPayment(null); // Close the payment details modal
       } else {
         setToastMessage(response.error || 'Failed to delete payment');
         setToastType('error');
@@ -324,11 +312,12 @@ const Payments: React.FC = () => {
               onChange={handleFilterChange}
               className="block w-full pl-4 pr-8 py-2 text-sm border-b-[1.5px] border-blue-600 rounded-none bg-transparent focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors"
             >
-              <option value="all">Payment status</option>
+              <option value="" disabled>Payment status</option>
+              <option value="all">All</option>
               <option value="completed">Completed</option>
+              <option value="refunded" disabled>Refunded</option>
               <option value="pending" disabled>Pending</option>
               <option value="failed" disabled>Failed</option>
-              <option value="refunded">Refunded</option>
             </select>
           </div>
           {/* Type Filter */}
@@ -338,11 +327,12 @@ const Payments: React.FC = () => {
               onChange={handleTypeFilterChange}
               className="block w-full pl-4 pr-8 py-2 text-sm border-b-[1.5px] border-blue-600 rounded-none bg-transparent focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors"
             >
-              <option value="all">Payment types</option>
-              <option value="stripe">Stripe</option>
-              <option value="manual">Manual</option>
+              <option value="" disabled>Payment filter</option>
+              <option value="all">All</option>
               <option value="cash">Cash</option>
-              <option value="check">Check</option>
+              <option value="stripe" disabled>Stripe</option>
+              <option value="manual" disabled>Manual</option>
+              <option value="check" disabled>Check</option>
             </select>
           </div>
           {/* Items per page */}
@@ -1014,13 +1004,11 @@ const Payments: React.FC = () => {
 
       {/* Toast (always render last, highest z-index) */}
       {toastMessage && (
-        <div className="fixed z-[1000000] top-8 left-1/2 transform -translate-x-1/2 w-auto max-w-md pointer-events-auto">
-          <Toast
-            message={toastMessage}
-            type={toastType}
-            onClose={() => setToastMessage(null)}
-          />
-        </div>
+        <Toast
+          message={toastMessage}
+          type={toastType}
+          onClose={() => setToastMessage(null)}
+        />
       )}
     </>
   );
