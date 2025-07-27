@@ -185,8 +185,8 @@ const AdminDashboard: React.FC = () => {
           <p className="text-3xl font-bold text-blue-600">{dashboardData.summary.total_vehicles}</p>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-600 mb-2">Total Users</h3>
-          <p className="text-3xl font-bold text-green-600">{dashboardData.summary.total_users}</p>
+          <h3 className="text-lg font-semibold text-gray-600 mb-2">Available Vehicles</h3>
+          <p className="text-3xl font-bold text-green-600">{dashboardData.summary.available_vehicles}</p>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-gray-600 mb-2">Total Revenue</h3>
@@ -194,28 +194,23 @@ const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="bg-white rounded-lg shadow">
+      {/* Vehicle Type Distribution */}
+      <div className="bg-white rounded-lg shadow mb-8">
         <div className="p-6 border-b">
-          <h2 className="text-xl font-semibold">Recent Activity</h2>
+          <h2 className="text-xl font-semibold">Vehicle Type Distribution</h2>
         </div>
-        <div className="divide-y">
-          {dashboardData.recent_activity.length === 0 ? (
-            <div className="p-6 text-gray-400 text-center">No recent activity to display.</div>
+        <div className="p-6">
+          {dashboardData.vehicle_type_distribution.length === 0 ? (
+            <div className="text-gray-400 text-center">No vehicle type data available.</div>
           ) : (
-            dashboardData.recent_activity.map((activity: any) => (
-              <div key={activity.id} className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-medium">{activity.description}</p>
-                    <p className="text-sm text-gray-500">{activity.type}</p>
-                  </div>
-                  <span className="text-sm text-gray-500">
-                    {new Date(activity.timestamp).toLocaleDateString()}
-                  </span>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {dashboardData.vehicle_type_distribution.map((item, index) => (
+                <div key={index} className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{item.count}</div>
+                  <div className="text-sm text-gray-600 capitalize">{item.type.replace('_', ' ')}</div>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       </div>

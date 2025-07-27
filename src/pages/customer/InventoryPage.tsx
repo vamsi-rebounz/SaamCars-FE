@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Filter, ChevronLeft, ChevronRight, Search, Car, Calendar, DollarSign } from 'lucide-react';
+import { Filter, ChevronLeft, ChevronRight, Search, Car } from 'lucide-react';
 import VehicleCard from '../../components/VehicleCard';
-import { getInventory, getCategories, getVehicleStatuses, type InventoryFilters, type PaginationInfo, type FilterStats } from '../../services/inventory';
+import { getInventory, getCategories, getVehicleStatuses, type InventoryFilters, type PaginationInfo } from '../../services/inventory';
 import { Vehicle as VehicleType } from '../../types/vehicle';
 import AlertState from '../../components/ErrorState';
 import useDebounce from '../../hooks/useDebounce';
@@ -17,7 +17,6 @@ const InventoryPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
-  const [filterStats, setFilterStats] = useState<FilterStats | null>(null);
   const [categories, setCategories] = useState<{ bodyTypes: { [key: string]: number }; fuelTypes: { [key: string]: number } }>({ bodyTypes: {}, fuelTypes: {} }); // Updated state for separated categories
   const [vehicleStatuses, setVehicleStatuses] = useState<{ [key: string]: number }>({}); // New state for vehicle statuses
   
@@ -81,7 +80,6 @@ const InventoryPage: React.FC = () => {
         if (response.success) {
           setVehicles(response.vehicles || []);
           setPagination(response.pagination || null);
-          setFilterStats(response.filter_stats || null);
           setError(null);
         } else {
           setError(response.error || 'Failed to load vehicles');
@@ -143,9 +141,11 @@ const InventoryPage: React.FC = () => {
       setSearchInput(value);
     } else {
       // Handle body_type and fuel_type filters - convert 'all' to undefined
-      let filterValue = value;
+      let filterValue: string | undefined;
       if ((name === 'body_type' || name === 'fuel_type') && value === 'all') {
         filterValue = undefined;
+      } else {
+        filterValue = value;
       }
       console.log(`Filter change - ${name}:`, value, '->', filterValue);
       setFilters(prev => ({ ...prev, [name]: filterValue, page: 1 }));

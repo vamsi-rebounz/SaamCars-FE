@@ -967,7 +967,7 @@ const Payments: React.FC = () => {
         <ManualPaymentModal
           isOpen={showManualPaymentModal}
           onClose={() => setShowManualPaymentModal(false)}
-          onSuccess={(updatedPayment) => {
+          onSuccess={() => {
             setShowManualPaymentModal(false);
             fetchAllPayments();
             if (location.state?.preloadVehicle) {
