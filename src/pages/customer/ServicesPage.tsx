@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wrench, Clock } from 'lucide-react';
+import { Wrench, X, Calendar } from 'lucide-react';
 import { services, getServicesByCategory } from '../../data/services';
 import ServiceCard from '../../components/ServiceCard';
 import { useAuth } from '../../contexts/AuthContext';

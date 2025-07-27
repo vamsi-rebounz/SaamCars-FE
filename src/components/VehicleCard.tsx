@@ -1,17 +1,17 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, MapPin, Gauge } from 'lucide-react';
+import { Calendar, MapPin, Gauge, Car } from 'lucide-react';
 
 interface VehicleCardProps {
-  id: string;
+  id: string | number;
   make: string;
   model: string;
   year: number;
   price: number;
-  mileage: number;
-  image: string;
-  condition: string;
-  tags: ('new' | 'featured' | 'price-drop')[];
+  mileage?: number;
+  image?: string;
+  condition?: string;
+  tags: string[];
 }
 
 const VehicleCard: React.FC<VehicleCardProps> = ({
@@ -25,74 +25,91 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
   condition,
   tags
 }) => {
+  const defaultImage = 'https://via.placeholder.com/400x250?text=No+Image';
+
   return (
-    <div className="card group">
-      <div className="relative overflow-hidden">
+    <div className="bg-white rounded-xl shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300 border border-gray-100">
+      {/* Image Section */}
+      <div className="relative" style={{ paddingBottom: '65%' }}>
+        <Link to={`/inventory/${id}`} className="block absolute inset-0">
+          <img 
+            src={image || defaultImage} 
+            alt={`${year} ${make} ${model}`} 
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = defaultImage;
+            }}
+          />
+        </Link>
+
         {/* Tags */}
-        {tags.length > 0 && (
-          <div className="absolute top-2 left-2 z-10 flex flex-wrap gap-2">
-            {tags.includes('new') && (
-              <span className="tag tag-new">New</span>
+        {tags && tags.length > 0 && (
+          <div className="absolute top-4 left-4 z-20 flex flex-wrap gap-1.5">
+            {tags.includes('New Arrivals') && (
+              <span className="px-2 py-1 text-xs font-medium rounded-md bg-green-500 text-white shadow-sm">New</span>
             )}
-            {tags.includes('featured') && (
-              <span className="tag tag-featured">Featured</span>
+            {tags.includes('Featured Vehicles') && (
+              <span className="px-2 py-1 text-xs font-medium rounded-md bg-blue-500 text-white shadow-sm">Featured</span>
             )}
-            {tags.includes('price-drop') && (
-              <span className="tag tag-price-drop">Price Drop</span>
+            {tags.includes('On Sale') && (
+              <span className="px-2 py-1 text-xs font-medium rounded-md bg-red-500 text-white shadow-sm">Sale</span>
+            )}
+            {tags.includes('Low Mileage') && (
+              <span className="px-2 py-1 text-xs font-medium rounded-md bg-purple-500 text-white shadow-sm">Low Mileage</span>
+            )}
+            {tags.includes('Certified Pre-Owned') && (
+              <span className="px-2 py-1 text-xs font-medium rounded-md bg-yellow-500 text-white shadow-sm">Certified</span>
             )}
           </div>
         )}
-        
-        {/* Image */}
-        <Link to={`/inventory/${id}`}>
-          <img 
-            src={image} 
-            alt={`${year} ${make} ${model}`} 
-            className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-        </Link>
       </div>
-      
-      <div className="p-4">
-        {/* Title */}
-        <Link to={`/inventory/${id}`}>
-          <h3 className="text-lg font-semibold text-gray-900 hover:text-blue-700 transition-colors">
+
+      {/* Card Content */}
+      <div className="p-6">
+        {/* Vehicle Title */}
+        <Link to={`/inventory/${id}`} className="block mb-2">
+          <h3 className="text-lg font-bold text-gray-900 hover:text-blue-600 transition-colors leading-tight">
             {year} {make} {model}
           </h3>
         </Link>
-        
+
         {/* Price */}
-        <div className="mt-2 mb-3">
+        <div className="mb-4">
           <span className="text-xl font-bold text-blue-700">
             ${price.toLocaleString()}
           </span>
         </div>
-        
-        {/* Details */}
-        <div className="flex flex-wrap gap-y-2">
-          <div className="w-full sm:w-1/2 flex items-center text-gray-600">
-            <Calendar className="h-4 w-4 mr-1" />
-            <span className="text-sm">{year}</span>
+
+        {/* Vehicle Details */}
+        <div className="space-y-3 mb-6">
+          <div className="flex items-center gap-2 text-gray-600">
+            <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <span className="text-sm font-medium">{year}</span>
           </div>
-          <div className="w-full sm:w-1/2 flex items-center text-gray-600">
-            <Gauge className="h-4 w-4 mr-1" />
-            <span className="text-sm">{mileage.toLocaleString()} mi</span>
+          
+          <div className="flex items-center gap-2 text-gray-600">
+            <Gauge className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <span className="text-sm font-medium">
+              {mileage ? `${mileage.toLocaleString()} miles` : 'Mileage N/A'}
+            </span>
           </div>
-          <div className="w-full flex items-center text-gray-600">
-            <MapPin className="h-4 w-4 mr-1" />
-            <span className="text-sm">{condition} Condition</span>
-          </div>
+          
+          {condition && (
+            <div className="flex items-center gap-2 text-gray-600">
+              <Car className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <span className="text-sm font-medium capitalize">{condition} Condition</span>
+            </div>
+          )}
         </div>
-        
-        {/* Button */}
-        <div className="mt-4">
-          <Link 
-            to={`/inventory/${id}`} 
-            className="btn-outline w-full text-center"
-          >
-            View Details
-          </Link>
-        </div>
+
+        {/* View Details Button */}
+        <Link 
+          to={`/inventory/${id}`} 
+          className="block w-full py-3 px-4 text-center text-white bg-blue-600 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 shadow-sm hover:shadow-md"
+        >
+          View Details
+        </Link>
       </div>
     </div>
   );

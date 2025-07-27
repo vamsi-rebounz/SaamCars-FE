@@ -1,8 +1,24 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Car, Phone, Mail, MapPin, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa';
+import { getBusinessSettings, type BusinessSettings } from '../services/businessSettings';
 
 const Footer: React.FC = () => {
+  const [businessData, setBusinessData] = useState<BusinessSettings | null>(null);
+
+  useEffect(() => {
+    const fetchBusinessSettings = async () => {
+      try {
+        const settings = await getBusinessSettings();
+        setBusinessData(settings);
+      } catch (err) {
+        console.error('Failed to fetch business settings:', err);
+      }
+    };
+
+    fetchBusinessSettings();
+  }, []);
+
   return (
     <footer className="bg-gray-900 text-white">
       <div className="container-custom py-12">
@@ -10,25 +26,32 @@ const Footer: React.FC = () => {
           {/* Company Info */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <Car className="h-8 w-8 text-blue-400" />
-              <span className="text-xl font-bold">Saam Cars LLC</span>
+              <span className="text-xl font-bold">{businessData?.businessName || 'Saam Cars LLC'}</span>
             </div>
             <p className="text-gray-300 mb-4">
-              Specializing in high-quality pre-owned vehicles at affordable prices. Your trusted partner in finding the perfect car.
+              Specializing in high-quality vehicles at affordable prices. Your trusted partner in finding the perfect car.
             </p>
-            <div className="flex space-x-4">
-              <a href="#" className="text-gray-300 hover:text-blue-400">
-                <Facebook className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-gray-300 hover:text-blue-400">
-                <Twitter className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-gray-300 hover:text-blue-400">
-                <Instagram className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-gray-300 hover:text-blue-400">
-                <Linkedin className="h-5 w-5" />
-              </a>
+            <div className="flex space-x-4 mt-4">
+              {businessData?.socialMedia?.facebook && (
+                <a href={businessData.socialMedia.facebook} className="text-gray-300 hover:text-blue-500 transition-colors" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+                  <FaFacebook size={22} />
+                </a>
+              )}
+              {businessData?.socialMedia?.twitter && (
+                <a href={businessData.socialMedia.twitter} className="text-gray-300 hover:text-blue-400 transition-colors" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
+                  <FaTwitter size={22} />
+                </a>
+              )}
+              {businessData?.socialMedia?.instagram && (
+                <a href={businessData.socialMedia.instagram} className="text-gray-300 hover:text-pink-500 transition-colors" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                  <FaInstagram size={22} />
+                </a>
+              )}
+              {businessData?.socialMedia?.linkedin && (
+                <a href={businessData.socialMedia.linkedin} className="text-gray-300 hover:text-blue-700 transition-colors" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                  <FaLinkedin size={22} />
+                </a>
+              )}
             </div>
           </div>
 
@@ -37,13 +60,10 @@ const Footer: React.FC = () => {
             <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/" className="text-gray-300 hover:text-blue-400">Home</Link>
+                <Link to="/" className="text-gray-300 hover:text-blue-400" onClick={() => window.scrollTo(0, 0)}>Home</Link>
               </li>
               <li>
                 <Link to="/inventory" className="text-gray-300 hover:text-blue-400">Inventory</Link>
-              </li>
-              <li>
-                <Link to="/services" className="text-gray-300 hover:text-blue-400">Services</Link>
               </li>
               <li>
                 <Link to="/contact" className="text-gray-300 hover:text-blue-400">Contact Us</Link>
@@ -54,46 +74,50 @@ const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Services */}
+          {/* Contact Us */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Our Services</h3>
-            <ul className="space-y-2">
-              <li className="text-gray-300">Vehicle Sales</li>
-              <li className="text-gray-300">Vehicle Maintenance</li>
-              <li className="text-gray-300">Trade-In Appraisals</li>
-              <li className="text-gray-300">Extended Warranties</li>
-              <li className="text-gray-300">Vehicle Inspection</li>
+            <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
+            <ul className="space-y-2 text-gray-300 mb-4">
+              <li>
+                {businessData
+                  ? `${businessData.streetAddress}, ${businessData.city}, ${businessData.state} ${businessData.zipCode}`
+                  : 'Address not available'}
+              </li>
+              <li>{businessData?.phone || 'Phone not available'}</li>
+              <li>{businessData?.email || 'Email not available'}</li>
             </ul>
           </div>
 
-          {/* Contact Info */}
+          {/* Business Hours */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
-            <ul className="space-y-3">
-              <li className="flex items-start space-x-3">
-                <MapPin className="h-5 w-5 text-blue-400 mt-0.5" />
-                <span className="text-gray-300">123 Auto Drive, Cartown, CT 12345</span>
-              </li>
-              <li className="flex items-center space-x-3">
-                <Phone className="h-5 w-5 text-blue-400" />
-                <span className="text-gray-300">(555) 123-4567</span>
-              </li>
-              <li className="flex items-center space-x-3">
-                <Mail className="h-5 w-5 text-blue-400" />
-                <span className="text-gray-300">info@saamcars.com</span>
-              </li>
+            <h4 className="text-lg font-semibold mb-4 text-white">Business Hours</h4>
+            <ul className="text-gray-300">
+              {businessData?.businessHours
+                ? [
+                    'monday',
+                    'tuesday',
+                    'wednesday',
+                    'thursday',
+                    'friday',
+                    'saturday',
+                    'sunday',
+                  ].map((day) => {
+                    const hours = businessData.businessHours[day];
+                    const label = day.charAt(0).toUpperCase() + day.slice(1);
+                    return (
+                      <li key={day}>
+                        <span className="capitalize">{label}:</span>{' '}
+                        {hours && hours.open && hours.close ? `${hours.open} - ${hours.close}` : 'Closed'}
+                      </li>
+                    );
+                  })
+                : <li>Business hours not available</li>}
             </ul>
-            <div className="mt-4">
-              <h4 className="font-medium mb-2">Business Hours:</h4>
-              <p className="text-gray-300">Mon-Fri: 9:00 AM - 7:00 PM</p>
-              <p className="text-gray-300">Saturday: 10:00 AM - 5:00 PM</p>
-              <p className="text-gray-300">Sunday: Closed</p>
-            </div>
           </div>
         </div>
 
         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; {new Date().getFullYear()} Saam Cars LLC. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {businessData?.businessName || 'Saam Cars LLC'}. All rights reserved.</p>
         </div>
       </div>
     </footer>

@@ -5,29 +5,20 @@ import { useAuth } from '../../contexts/AuthContext';
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const { login } = useAuth();
+  const { login, isLoading, error, clearError } = useAuth();
   const navigate = useNavigate();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setIsLoading(true);
+    clearError();
     
     try {
-      const success = await login(email, password);
-      if (success) {
+      const result = await login(email, password);
+      if (result.success) {
         navigate('/');
-      } else {
-        setError('Invalid email or password');
       }
     } catch (err) {
-      setError('An error occurred during login');
-      console.error(err);
-    } finally {
-      setIsLoading(false);
+      console.error('Login error:', err);
     }
   };
 
@@ -104,9 +95,9 @@ const LoginPage: React.FC = () => {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-blue-700 hover:text-blue-800">
+                <Link to="/forgot-password" className="font-medium text-blue-700 hover:text-blue-800">
                   Forgot your password?
-                </a>
+                </Link>
               </div>
             </div>
 
@@ -120,25 +111,6 @@ const LoginPage: React.FC = () => {
               </button>
             </div>
           </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Demo Accounts</span>
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 gap-3">
-              <div>
-                <p className="text-sm text-gray-600 mb-2">For testing purposes:</p>
-                <p className="text-sm text-gray-600">Customer: <span className="font-mono">user@example.com</span> / <span className="font-mono">password</span></p>
-                <p className="text-sm text-gray-600">Admin: <span className="font-mono">admin@samcars.com</span> / <span className="font-mono">password</span></p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

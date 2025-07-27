@@ -1,114 +1,387 @@
-import React, { useState } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Edit, 
-  Trash2, 
-  ChevronDown, 
+import {
+  AlertCircle,
+  Calendar,
+  Car,
+  CheckCircle,
+  ChevronDown,
   ChevronUp,
+  Clock,
+  DollarSign,
+  Edit,
+  Filter,
+  Image as ImageIcon,
+  Plus,
+  RefreshCw,
+  Search,
   Tag,
-  Check,
+  Trash2,
   X
 } from 'lucide-react';
-import { vehicles } from '../../data/vehicles';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import AlertState from '../../components/ErrorState';
+import AddVehicleForm from '../../components/inventory/AddVehicleForm';
+import useDebounce from '../../hooks/useDebounce';
+import { deleteVehicle, getInventory } from '../../services/inventory';
+import { Vehicle as VehicleType } from '../../types/vehicle';
+
+type Vehicle = VehicleType;
+
+interface Pagination {
+  current_page: number;
+  total_pages: number;
+  total_items: number;
+  items_per_page: number;
+  has_next: boolean;
+  has_previous: boolean;
+}
 
 const Inventory: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState('dateAdded');
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [searchInput, setSearchInput] = useState('');
+  const [sortField, setSortField] = useState('date_added');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
-  
-  // Filter vehicles based on search term
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [filterStatus, setFilterStatus] = useState('');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [formSuccessMessage, setFormSuccessMessage] = useState<string | null>(null);
+  const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
+  const [imageErrors, setImageErrors] = useState<{ [key: string]: boolean }>({});
+
+  // Debounce search term
+  const debouncedSearch = useDebounce(searchInput, 500);
+
+  const navigate = useNavigate();
+
+  console.log('Inventory component rendering with state:', { 
+    loading, 
+    error, 
+    vehiclesCount: vehicles.length,
+    searchInput,
+    sortField,
+    sortDirection,
+    currentPage,
+    filterStatus,
+    pagination
+  });
+
+  // Fetch vehicles from API
+  const fetchVehicles = async () => {
+    console.log('Fetching vehicles with filters:', {
+      search: debouncedSearch,
+      sort_by: sortField,
+      sort_order: sortDirection,
+      page: currentPage,
+      limit: itemsPerPage,
+      status: filterStatus,
+    });
+    
+    setLoading(true);
+    setError(null);
+    try {
+      const validSortFields = ['date_added', 'price', 'year', 'mileage', 'make'];
+      const filters = {
+        search: debouncedSearch,
+        sort_by: validSortFields.includes(sortField) ? sortField as any : 'date_added',
+        sort_order: sortDirection,
+        page: currentPage,
+        limit: itemsPerPage,
+        ...(filterStatus ? { status: filterStatus } : { status: 'all' }),
+      };
+      console.log('Sending filters to API:', filters);
+      const response = await getInventory(filters);
+      console.log('API response:', response);
+      if (response.success && response.vehicles) {
+        setVehicles(response.vehicles);
+        setPagination(response.pagination || null);
+      } else {
+        setError(response.error || 'Failed to fetch vehicles');
+      }
+    } catch (err) {
+      console.error('Error fetching vehicles:', err);
+      setError('Failed to fetch vehicles');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch vehicles when dependencies change
+  useEffect(() => {
+    fetchVehicles();
+  }, [debouncedSearch, sortField, sortDirection, currentPage, itemsPerPage, filterStatus]);
+
+  // Filter and sort vehicles (client-side fallback)
   const filteredVehicles = vehicles.filter(vehicle => {
     const searchString = `${vehicle.make} ${vehicle.model} ${vehicle.year} ${vehicle.vin}`.toLowerCase();
-    return searchString.includes(searchTerm.toLowerCase());
+    return searchString.includes(searchInput.toLowerCase());
   });
-  
-  // Sort vehicles
+
   const sortedVehicles = [...filteredVehicles].sort((a, b) => {
     let aValue: any = a[sortField as keyof typeof a];
     let bValue: any = b[sortField as keyof typeof b];
-    
-    // Handle date strings
-    if (sortField === 'dateAdded') {
+
+    if (sortField === 'created_at') {
       aValue = new Date(aValue).getTime();
       bValue = new Date(bValue).getTime();
     }
-    
+
     if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
     if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
     return 0;
   });
-  
+
   const handleSort = (field: string) => {
-    if (field === sortField) {
+    const fieldMap: { [key: string]: string } = {
+      make: 'make',
+      year: 'year',
+      price: 'price',
+      mileage: 'mileage',
+      created_at: 'date_added',  // Map created_at to date_added
+    };
+    const apiField = fieldMap[field] || field;
+    if (apiField === sortField) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortField(field);
+      setSortField(apiField);
       setSortDirection('asc');
     }
+    setCurrentPage(1);
   };
-  
-  const handleDelete = (id: string) => {
-    setSelectedVehicle(id);
-    setShowDeleteModal(true);
+
+  const confirmDelete = async () => {
+    if (!selectedVehicleId) return;
+    try {
+      const response = await deleteVehicle(selectedVehicleId);
+      
+      if (response.success) {
+        setShowDeleteModal(false);
+        setSelectedVehicleId(null);
+        setSuccessMessage('Vehicle deleted successfully!');
+        await fetchVehicles(); // Refetch to sync with backend
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        setError(response.error || 'Failed to delete vehicle');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Failed to delete vehicle');
+      console.error('Error deleting vehicle:', err);
+    }
   };
-  
-  const confirmDelete = () => {
-    // In a real app, this would call an API to delete the vehicle
-    alert(`Vehicle ${selectedVehicle} would be deleted`);
-    setShowDeleteModal(false);
+
+  const closeAddModal = () => {
+    setShowAddModal(false);
     setSelectedVehicle(null);
   };
 
+  const handlePageChange = (page: number) => {
+    if (pagination && (page < 1 || page > pagination.total_pages)) return;
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1);
+  };
+
+  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    console.log('Filter change:', e.target.value);
+    setFilterStatus(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleEditComplete = () => {
+    setShowEditModal(false);
+    setSelectedVehicle(null);
+    fetchVehicles(); // Refresh the list after edit
+    // Clear form messages after 3 seconds
+    setTimeout(() => {
+      setFormSuccessMessage(null);
+      setFormErrorMessage(null);
+    }, 3000);
+  };
+
+  const handleAddComplete = () => {
+    setShowAddModal(false);
+    setError(null); // Clear any previous error
+    fetchVehicles(); // Refresh the list after add
+    // Clear form messages after 3 seconds
+    setTimeout(() => {
+      setFormSuccessMessage(null);
+      setFormErrorMessage(null);
+    }, 3000);
+  };
+
+  const handleImageError = (vehicleId: string | number) => {
+    setImageErrors(prev => ({
+      ...prev,
+      [vehicleId.toString()]: true
+    }));
+  };
+
+  const handleVehicleClick = (id: string | number) => {
+    navigate(`/admin/inventory/${id}`);
+  };
+
+  // Get status icon and color
+  const getStatusInfo = (status: string) => {
+    switch (status) {
+      case 'available':
+        return { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-100', border: 'border-green-200' };
+      case 'sold':
+        return { icon: Tag, color: 'text-red-600', bg: 'bg-red-100', border: 'border-red-200' };
+      case 'under_maintenance':
+        return { icon: AlertCircle, color: 'text-orange-600', bg: 'bg-orange-100', border: 'border-orange-200' };
+      case 'under_inspection':
+        return { icon: Clock, color: 'text-blue-600', bg: 'bg-blue-100', border: 'border-blue-200' };
+      case 'reserved':
+        return { icon: Tag, color: 'text-purple-600', bg: 'bg-purple-100', border: 'border-purple-200' };
+      default:
+        return { icon: Clock, color: 'text-gray-600', bg: 'bg-gray-100', border: 'border-gray-200' };
+    }
+  };
+
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
-      <div className="sm:flex sm:items-center sm:justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Inventory Management</h1>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="mt-3 sm:mt-0 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Vehicle
-        </button>
-      </div>
-      
-      {/* Filters and Search */}
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-          <div className="w-full md:w-1/3">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search inventory..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              />
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-4">
+    <div className="min-h-screen bg-gray-50">
+      {/* Form Success/Error Messages - Top of Page */}
+      {formSuccessMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-green-100 border border-green-400 text-green-700 px-6 py-4 rounded-lg shadow-lg">
+          <div className="flex items-center justify-between">
             <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">{formSuccessMessage}</span>
+            </div>
+            <button
+              onClick={() => setFormSuccessMessage(null)}
+              className="ml-4 text-green-700 hover:text-green-900"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {formErrorMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">{formErrorMessage}</span>
+            </div>
+            <button
+              onClick={() => setFormErrorMessage(null)}
+              className="ml-4 text-red-700 hover:text-red-900"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Success Alert */}
+      {successMessage && (
+        <AlertState
+          variant="success"
+          success={successMessage}
+          onClose={() => setSuccessMessage(null)}
+        />
+      )}
+
+      {/* Error Alert */}
+      {error && (
+        <AlertState
+          variant="server"
+          error={error}
+          onClose={() => setError(null)}
+          onRetry={fetchVehicles}
+        />
+      )}
+
+      <div className="container mx-auto px-4 py-8">
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-4 sm:mb-0">
+              <div className="flex items-center">
+                <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl mr-4">
+                  <Car className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
+                  <p className="text-gray-600 mt-1">Manage your vehicle inventory efficiently</p>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Add Vehicle
+            </button>
+          </div>
+        </div>
+
+        {/* Filters and Search */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Search */}
+            <div className="flex-1 min-w-[220px]">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search VIN, Make, Model"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="block w-full pl-12 pr-4 py-2 border-b-[1.5px] border-blue-600 rounded-none bg-transparent placeholder-gray-500 focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors text-sm"
+                />
+              </div>
+            </div>
+            {/* Vehicle status */}
+            <div className="flex items-center min-w-[180px]">
               <Filter className="h-5 w-5 text-gray-400 mr-2" />
-              <select className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                <option value="">All Vehicles</option>
-                <option value="new">New Arrivals</option>
-                <option value="featured">Featured</option>
-                <option value="price-drop">Price Drop</option>
-                <option value="sold">Sold</option>
+              <select
+                value={filterStatus}
+                onChange={handleFilterChange}
+                className="block w-full pl-4 pr-8 py-2 text-sm border-b-[1.5px] border-blue-600 rounded-none bg-transparent focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors"
+              >
+                <option value="" disabled>Filter by status</option>
+                <option value="all">All</option>
+                <option value="available">Available for Sale</option>
+                <option value="reserved">Reserved - Pending</option>
+                <option value="sold">Sold - Completed</option>
+                <option value="under_maintenance">In Service - Maintenance</option>
+                <option value="under_inspection">In Service - Inspection</option>
               </select>
             </div>
-            
-            <div>
-              <select className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+            {/* Items per page */}
+            <div className="flex items-center min-w-[160px] md:ml-4">
+              <select
+                value={itemsPerPage}
+                onChange={handleItemsPerPageChange}
+                className="block w-full pl-4 pr-8 py-2 text-sm border-b-[1.5px] border-blue-600 rounded-none bg-transparent focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors"
+              >
+                <option value="5">5 per page</option>
                 <option value="10">10 per page</option>
                 <option value="25">25 per page</option>
                 <option value="50">50 per page</option>
@@ -117,512 +390,413 @@ const Inventory: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
-      
-      {/* Inventory Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('make')}
-                >
-                  <div className="flex items-center">
-                    Vehicle
-                    {sortField === 'make' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
-                    )}
+
+        {/* Loading State */}
+        {loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(itemsPerPage)].map((_, i) => (
+              <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-pulse">
+                <div className="flex items-center space-x-4">
+                  <div className="rounded-lg bg-gray-300 h-16 w-16"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/3"></div>
                   </div>
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('year')}
-                >
-                  <div className="flex items-center">
-                    Year
-                    {sortField === 'year' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('price')}
-                >
-                  <div className="flex items-center">
-                    Price
-                    {sortField === 'price' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('mileage')}
-                >
-                  <div className="flex items-center">
-                    Mileage
-                    {sortField === 'mileage' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Status
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('dateAdded')}
-                >
-                  <div className="flex items-center">
-                    Date Added
-                    {sortField === 'dateAdded' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />
-                    )}
-                  </div>
-                </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {sortedVehicles.map((vehicle) => (
-                <tr key={vehicle.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 flex-shrink-0">
-                        <img 
-                          className="h-10 w-10 rounded-md object-cover" 
-                          src={vehicle.images[0]} 
-                          alt={`${vehicle.make} ${vehicle.model}`} 
-                        />
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {vehicle.make} {vehicle.model}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          VIN: {vehicle.vin}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {vehicle.year}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                    ${vehicle.price.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {vehicle.mileage.toLocaleString()} mi
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      {vehicle.isSold ? (
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                          Sold
-                        </span>
-                      ) : (
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                          Available
-                        </span>
-                      )}
-                      {vehicle.tags.length > 0 && (
-                        <div className="ml-2 flex space-x-1">
-                          {vehicle.tags.includes('new') && (
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                              New
-                            </span>
-                          )}
-                          {vehicle.tags.includes('featured') && (
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
-                              Featured
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(vehicle.dateAdded).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button className="text-blue-700 hover:text-blue-800 mr-3">
-                      <Edit className="h-5 w-5" />
-                    </button>
-                    <button 
-                      className="text-red-600 hover:text-red-700"
-                      onClick={() => handleDelete(vehicle.id)}
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* Pagination */}
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-          <div className="flex-1 flex justify-between sm:hidden">
-            <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-              Previous
-            </button>
-            <button className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-              Next
-            </button>
-          </div>
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Showing <span className="font-medium">1</span> to <span className="font-medium">10</span> of{' '}
-                <span className="font-medium">{vehicles.length}</span> results
-              </p>
-            </div>
-            <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                <button className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                  <span className="sr-only">Previous</span>
-                  <ChevronUp className="h-5 w-5 rotate-90" />
-                </button>
-                <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  1
-                </button>
-                <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  2
-                </button>
-                <button className="relative inline-flex items-center px-4 py-2 border border-blue-500 bg-blue-50 text-sm font-medium text-blue-700">
-                  3
-                </button>
-                <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                  ...
-                </span>
-                <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  8
-                </button>
-                <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  9
-                </button>
-                <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  10
-                </button>
-                <button className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                  <span className="sr-only">Next</span>
-                  <ChevronDown className="h-5 w-5 rotate-90" />
-                </button>
-              </nav>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Add Vehicle Modal */}
-      {showAddModal && (
-        <div className="fixed z-10 inset-0 overflow-y-auto">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-            </div>
-            
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="sm:flex sm:items-start">
-                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                    <Plus className="h-6 w-6 text-blue-700" />
-                  </div>
-                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                      Add New Vehicle
-                    </h3>
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500">
-                        Fill out the form below to add a new vehicle to the inventory.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-5 sm:mt-4">
-                  <form className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label htmlFor="make" className="block text-sm font-medium text-gray-700">
-                          Make
-                        </label>
-                        <input
-                          type="text"
-                          name="make"
-                          id="make"
-                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="model" className="block text-sm font-medium text-gray-700">
-                          Model
-                        </label>
-                        <input
-                          type="text"
-                          name="model"
-                          id="model"
-                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div>
-                        <label htmlFor="year" className="block text-sm font-medium text-gray-700">
-                          Year
-                        </label>
-                        <input
-                          type="number"
-                          name="year"
-                          id="year"
-                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="price" className="block text-sm font-medium text-gray-700">
-                          Price
-                        </label>
-                        <input
-                          type="number"
-                          name="price"
-                          id="price"
-                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="mileage" className="block text-sm font-medium text-gray-700">
-                          Mileage
-                        </label>
-                        <input
-                          type="number"
-                          name="mileage"
-                          id="mileage"
-                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="vin" className="block text-sm font-medium text-gray-700">
-                        VIN
-                      </label>
-                      <input
-                        type="text"
-                        name="vin"
-                        id="vin"
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label htmlFor="exteriorColor" className="block text-sm font-medium text-gray-700">
-                          Exterior Color
-                        </label>
-                        <input
-                          type="text"
-                          name="exteriorColor"
-                          id="exteriorColor"
-                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="interiorColor" className="block text-sm font-medium text-gray-700">
-                          Interior Color
-                        </label>
-                        <input
-                          type="text"
-                          name="interiorColor"
-                          id="interiorColor"
-                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label htmlFor="transmission" className="block text-sm font-medium text-gray-700">
-                          Transmission
-                        </label>
-                        <select
-                          id="transmission"
-                          name="transmission"
-                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        >
-                          <option value="">Select Transmission</option>
-                          <option value="Automatic">Automatic</option>
-                          <option value="Manual">Manual</option>
-                          <option value="CVT">CVT</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label htmlFor="bodyType" className="block text-sm font-medium text-gray-700">
-                          Body Type
-                        </label>
-                        <select
-                          id="bodyType"
-                          name="bodyType"
-                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        >
-                          <option value="">Select Body Type</option>
-                          <option value="Sedan">Sedan</option>
-                          <option value="SUV">SUV</option>
-                          <option value="Truck">Truck</option>
-                          <option value="Coupe">Coupe</option>
-                          <option value="Convertible">Convertible</option>
-                          <option value="Wagon">Wagon</option>
-                          <option value="Van">Van</option>
-                        </select>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                        Description
-                      </label>
-                      <textarea
-                        id="description"
-                        name="description"
-                        rows={3}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      ></textarea>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Tags
-                      </label>
-                      <div className="mt-2 flex items-center space-x-3">
-                        <div className="flex items-center">
-                          <input
-                            id="tag-new"
-                            name="tags"
-                            type="checkbox"
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <label htmlFor="tag-new" className="ml-2 block text-sm text-gray-700">
-                            New Arrival
-                          </label>
-                        </div>
-                        <div className="flex items-center">
-                          <input
-                            id="tag-featured"
-                            name="tags"
-                            type="checkbox"
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <label htmlFor="tag-featured" className="ml-2 block text-sm text-gray-700">
-                            Featured
-                          </label>
-                        </div>
-                        <div className="flex items-center">
-                          <input
-                            id="tag-price-drop"
-                            name="tags"
-                            type="checkbox"
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <label htmlFor="tag-price-drop" className="ml-2 block text-sm text-gray-700">
-                            Price Drop
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Upload Images
-                      </label>
-                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                        <div className="space-y-1 text-center">
-                          <svg
-                            className="mx-auto h-12 w-12 text-gray-400"
-                            stroke="currentColor"
-                            fill="none"
-                            viewBox="0 0 48 48"
-                            aria-hidden="true"
-                          >
-                            <path
-                              d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                              strokeWidth={2}
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                          <div className="flex text-sm text-gray-600">
-                            <label
-                              htmlFor="file-upload"
-                              className="relative cursor-pointer bg-white rounded-md font-medium text-blue-700 hover:text-blue-800 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
-                            >
-                              <span>Upload files</span>
-                              <input id="file-upload" name="file-upload" type="file" className="sr-only" multiple />
-                            </label>
-                            <p className="pl-1">or drag and drop</p>
-                          </div>
-                          <p className="text-xs text-gray-500">
-                            PNG, JPG, GIF up to 10MB
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </form>
                 </div>
               </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            ))}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && vehicles.length === 0 && (
+          <div className="text-center py-16 relative overflow-hidden rounded-xl">
+            {/* Background Image */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
+              style={{
+                backgroundImage: `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236B7280"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.22.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>')`
+              }}
+            ></div>
+            
+            {/* Content */}
+            <div className="relative z-10">
+              <div className="mx-auto h-20 w-20 text-gray-300 mb-6">
+                <Car className="h-full w-full" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-3 tracking-wide">
+                {error ? 'Error loading vehicles' : 'No vehicles found'}
+              </h3>
+              <p className="text-gray-500 text-lg">
+                {error ? 'There was an issue loading the inventory. Please try refreshing the page.' : 
+                  (searchInput || filterStatus !== '') ? 
+                    `No vehicles match your current search and filter criteria. Try adjusting your search terms or filters.` :
+                    'No vehicles are currently in the inventory. Add your first vehicle to get started.'
+                }
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Vehicle Table */}
+        {!loading && vehicles.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Vehicle
+                    </th>
+                    <th 
+                      scope="col" 
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort('created_at')}
+                    >
+                      <div className="flex items-center">
+                        Date Added
+                        {sortField === 'date_added' && (
+                          sortDirection === 'asc' ? 
+                            <ChevronUp className="inline h-4 w-4 ml-2 text-blue-600" /> : 
+                            <ChevronDown className="inline h-4 w-4 ml-2 text-blue-600" />
+                        )}
+                      </div>
+                    </th>
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th 
+                      scope="col" 
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort('price')}
+                    >
+                      <div className="flex items-center">
+                        Price
+                        {sortField === 'price' && (
+                          sortDirection === 'asc' ? 
+                            <ChevronUp className="inline h-4 w-4 ml-2 text-blue-600" /> : 
+                            <ChevronDown className="inline h-4 w-4 ml-2 text-blue-600" />
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      scope="col" 
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort('mileage')}
+                    >
+                      <div className="flex items-center">
+                        Mileage
+                        {sortField === 'mileage' && (
+                          sortDirection === 'asc' ? 
+                            <ChevronUp className="inline h-4 w-4 ml-2 text-blue-600" /> : 
+                            <ChevronDown className="inline h-4 w-4 ml-2 text-blue-600" />
+                        )}
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {sortedVehicles.map((vehicle) => {
+                    const statusInfo = getStatusInfo(vehicle.status);
+                    const StatusIcon = statusInfo.icon;
+                    
+                    return (
+                      <tr 
+                        key={vehicle.id}
+                        className="hover:bg-gray-50 transition-colors cursor-pointer group"
+                        onClick={() => handleVehicleClick(vehicle.id)}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center">
+                            <div className="h-12 w-12 flex-shrink-0">
+                              {!imageErrors[vehicle.id] && vehicle.images && vehicle.images[0] ? (
+                                <img
+                                  className="h-12 w-12 rounded-lg object-cover border border-gray-200"
+                                  src={vehicle.images[0]}
+                                  alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+                                  onError={() => handleImageError(vehicle.id)}
+                                />
+                              ) : (
+                                <div className="h-12 w-12 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center">
+                                  <ImageIcon className="h-6 w-6 text-gray-400" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="ml-4 min-w-0 flex-1">
+                              <div className="text-sm font-semibold text-gray-900 break-words">
+                                {vehicle.year} {vehicle.make} {vehicle.model}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                VIN: {vehicle.vin}
+                              </div>
+                              {vehicle.stock_number && (
+                                <div className="text-xs text-gray-400">
+                                  Stock: {vehicle.stock_number}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                            {vehicle.created_at ? new Date(vehicle.created_at).toLocaleDateString() : 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusInfo.bg} ${statusInfo.border} ${statusInfo.color}`}>
+                            <StatusIcon className="h-3 w-3 mr-1" />
+                            {vehicle.status === 'available' ? 'Available for Sale' :
+                             vehicle.status === 'reserved' ? 'Reserved - Pending' :
+                             vehicle.status === 'sold' ? 'Sold - Completed' :
+                             vehicle.status === 'under_maintenance' ? 'In Service - Maintenance' :
+                             vehicle.status === 'under_inspection' ? 'In Service - Inspection' :
+                             vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <DollarSign className="h-4 w-4 text-green-600 mr-1" />
+                            <span className="text-sm font-semibold text-gray-900">
+                              {vehicle.price.toLocaleString()}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Car className="h-4 w-4 mr-2 text-gray-400" />
+                            {vehicle.mileage ? `${vehicle.mileage.toLocaleString()} mi` : 'N/A'}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Pagination Controls (move to below table, center) */}
+            {pagination && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-6 py-4 mt-4">
+                <div className="flex items-center justify-center space-x-4">
+                  {/* Left Arrow Button */}
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={!pagination.has_previous}
+                    className={`p-2 rounded-lg border transition-colors ${
+                      !pagination.has_previous
+                        ? 'text-gray-300 border-gray-200 cursor-not-allowed'
+                        : 'text-gray-500 border-gray-300 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400'
+                    }`}
+                    title="Previous Page"
+                  >
+                    <ChevronDown className="h-5 w-5 rotate-90" />
+                  </button>
+                  {/* Page Numbers */}
+                  <div className="flex items-center space-x-2">
+                    {(() => {
+                      const pages = [];
+                      const totalPages = pagination.total_pages;
+                      const current = currentPage;
+                      // Always show first page
+                      pages.push(
+                        <button
+                          key={1}
+                          onClick={() => handlePageChange(1)}
+                          className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                            current === 1
+                              ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                              : 'border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400'
+                          }`}
+                        >
+                          1
+                        </button>
+                      );
+                      // Show ellipsis if there's a gap after page 1
+                      if (current > 3) {
+                        pages.push(
+                          <span key="ellipsis-1" className="px-3 py-2 text-gray-500">
+                            ...
+                          </span>
+                        );
+                      }
+                      // Show pages around current page
+                      for (let i = Math.max(2, current - 1); i <= Math.min(totalPages - 1, current + 1); i++) {
+                        if (i !== 1 && i !== totalPages) {
+                          pages.push(
+                            <button
+                              key={i}
+                              onClick={() => handlePageChange(i)}
+                              className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                                current === i
+                                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                                  : 'border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400'
+                              }`}
+                            >
+                              {i}
+                            </button>
+                          );
+                        }
+                      }
+                      // Show ellipsis if there's a gap before last page
+                      if (current < totalPages - 2) {
+                        pages.push(
+                          <span key="ellipsis-2" className="px-3 py-2 text-gray-500">
+                            ...
+                          </span>
+                        );
+                      }
+                      // Always show last page (if there is more than one page)
+                      if (totalPages > 1) {
+                        pages.push(
+                          <button
+                            key={totalPages}
+                            onClick={() => handlePageChange(totalPages)}
+                            className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                              current === totalPages
+                                ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                                : 'border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400'
+                            }`}
+                          >
+                            {totalPages}
+                          </button>
+                        );
+                      }
+                      return pages;
+                    })()}
+                  </div>
+                  {/* Right Arrow Button */}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={!pagination?.has_next}
+                    className={`p-2 rounded-lg border transition-colors ${
+                      !pagination?.has_next
+                        ? 'text-gray-300 border-gray-200 cursor-not-allowed'
+                        : 'text-gray-500 border-gray-300 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400'
+                    }`}
+                    title="Next Page"
+                  >
+                    <ChevronDown className="h-5 w-5 -rotate-90" />
+                  </button>
+                </div>
+                {/* Page Info */}
+                {pagination && (
+                  <div className="text-center mt-3">
+                    <p className="text-sm text-gray-600">
+                      Page {pagination.current_page} of {pagination.total_pages} • {pagination.total_items} total vehicles
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+
+      </div>
+
+      {/* Add Vehicle Modal */}
+      {showAddModal && (
+        <div className="fixed z-50 inset-0 overflow-y-auto">
+          {/* Background overlay */}
+          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={closeAddModal}></div>
+          
+          {/* Modal content */}
+          <div className="flex items-center justify-center min-h-screen p-4">
+            <div className="relative bg-white rounded-xl shadow-xl max-w-7xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
                 <button
-                  type="button"
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-700 text-base font-medium text-white hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                  className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-2 transition-colors z-10"
+                  onClick={closeAddModal}
                 >
-                  Add Vehicle
+                  <X className="h-6 w-6" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                >
-                  Cancel
-                </button>
+                
+                <div className="flex items-start mb-6">
+                  <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mr-4">
+                    <Plus className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">
+                      Add New Vehicle
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Fill out the form below to add a new vehicle to the inventory.
+                    </p>
+                  </div>
+                </div>
+
+                <AddVehicleForm
+                  onSuccess={handleAddComplete}
+                  isEditing={false}
+                />
               </div>
             </div>
           </div>
         </div>
       )}
-      
+
+      {/* Edit Vehicle Modal */}
+      {showEditModal && selectedVehicle && (
+        <div className="fixed z-50 inset-0 overflow-y-auto">
+          {/* Background overlay */}
+          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowEditModal(false)}></div>
+          
+          {/* Modal content */}
+          <div className="flex items-center justify-center min-h-screen p-4">
+            <div className="relative bg-white rounded-xl shadow-xl max-w-7xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <button
+                  className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-2 transition-colors z-10"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  <X className="h-6 w-6" />
+                </button>
+                
+                <div className="flex items-start mb-6">
+                  <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mr-4">
+                    <Edit className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">
+                      Edit Vehicle
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Update the vehicle information below.
+                    </p>
+                  </div>
+                </div>
+
+                <AddVehicleForm
+                  initialData={selectedVehicle}
+                  onSuccess={handleEditComplete}
+                  isEditing={true}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed z-10 inset-0 overflow-y-auto">
+        <div className="fixed z-50 inset-0 overflow-y-auto">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div className="fixed inset-0 transition-opacity" aria-hidden="true">
               <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
             </div>
-            
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true"></span>
+
+            <div className="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-6 pt-6 pb-4 sm:p-6 sm:pb-4">
                 <div className="sm:flex sm:items-start">
                   <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
                     <Trash2 className="h-6 w-6 text-red-600" />
                   </div>
                   <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
                       Delete Vehicle
                     </h3>
                     <div className="mt-2">
@@ -633,18 +807,18 @@ const Inventory: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <div className="bg-gray-50 px-6 py-4 sm:px-6 sm:flex sm:flex-row-reverse">
                 <button
                   type="button"
+                  className="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-3 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm transition-colors"
                   onClick={confirmDelete}
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
                 >
                   Delete
                 </button>
                 <button
                   type="button"
+                  className="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-3 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-colors"
                   onClick={() => setShowDeleteModal(false)}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                 >
                   Cancel
                 </button>

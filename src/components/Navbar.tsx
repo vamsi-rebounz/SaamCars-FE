@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Car, Menu, X, ShoppingCart, Heart, User } from 'lucide-react';
+import { Car, Menu, X, Heart, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useCart } from '../contexts/CartContext';
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
-  const { totalItems } = useCart();
   const navigate = useNavigate();
   
   const handleLogout = () => {
@@ -36,9 +34,6 @@ const Navbar: React.FC = () => {
             </Link>
             <Link to="/inventory" className="text-gray-700 hover:text-blue-700 font-medium">
               Inventory
-            </Link>
-            <Link to="/sell-car" className="text-gray-700 hover:text-blue-700 font-medium">
-              Sell Your Car
             </Link>
             {/* <Link to="/services" className="text-gray-700 hover:text-blue-700 font-medium">
               Services
@@ -111,13 +106,6 @@ const Navbar: React.FC = () => {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Inventory
-              </Link>
-              <Link 
-                to="/sell-car" 
-                className="text-gray-700 hover:text-blue-700 font-medium"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Sell Your Car
               </Link>
               <Link 
                 to="/services" 

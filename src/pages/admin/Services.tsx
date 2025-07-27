@@ -7,8 +7,7 @@ import {
   ChevronDown, 
   ChevronUp,
   Edit,
-  Trash2,
-  DollarSign
+  Trash2
 } from 'lucide-react';
 import { services } from '../../data/services';
 
