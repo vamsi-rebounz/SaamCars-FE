@@ -12,6 +12,7 @@ interface VehicleCardProps {
   image?: string;
   condition?: string;
   tags: string[];
+  status?: string;
 }
 
 const VehicleCard: React.FC<VehicleCardProps> = ({
@@ -23,12 +24,23 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
   mileage,
   image,
   condition,
-  tags
+  tags,
+  status
 }) => {
   const defaultImage = 'https://via.placeholder.com/400x250?text=No+Image';
+  const isSold = status === 'sold';
+  const isUnderMaintenance = status === 'under_maintenance';
+  const isUnderInspection = status === 'under_inspection';
+  const isReserved = status === 'reserved';
 
   return (
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300 border border-gray-100">
+    <div className={`bg-white rounded-xl shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300 border ${
+      isSold ? 'border-red-200 bg-gray-50/50' : 
+      isUnderMaintenance ? 'border-yellow-200 bg-gray-50/50' :
+      isUnderInspection ? 'border-orange-200 bg-gray-50/50' :
+      isReserved ? 'border-purple-200 bg-gray-50/50' :
+      'border-gray-100'
+    }`}>
       {/* Image Section */}
       <div className="relative" style={{ paddingBottom: '65%' }}>
         <Link to={`/inventory/${id}`} className="block absolute inset-0">
@@ -75,10 +87,32 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
         </Link>
 
         {/* Price */}
-        <div className="mb-4">
-          <span className="text-xl font-bold text-blue-700">
+        <div className="mb-4 flex items-center gap-2">
+          <span className={`text-xl font-bold ${
+            isSold || isUnderMaintenance || isUnderInspection || isReserved ? 'line-through text-gray-500' : 'text-blue-700'
+          }`}>
             ${price.toLocaleString()}
           </span>
+          {isSold && (
+            <span className="px-2 py-1 text-xs font-bold text-white bg-red-600 rounded-md">
+              SOLD
+            </span>
+          )}
+          {isUnderMaintenance && (
+            <span className="px-2 py-1 text-xs font-bold text-white bg-yellow-600 rounded-md">
+              UNDER MAINTENANCE
+            </span>
+          )}
+          {isUnderInspection && (
+            <span className="px-2 py-1 text-xs font-bold text-white bg-orange-600 rounded-md">
+              UNDER INSPECTION
+            </span>
+          )}
+          {isReserved && (
+            <span className="px-2 py-1 text-xs font-bold text-white bg-purple-600 rounded-md">
+              HOLD
+            </span>
+          )}
         </div>
 
         {/* Vehicle Details */}

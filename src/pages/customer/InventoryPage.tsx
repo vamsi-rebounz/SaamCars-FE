@@ -53,7 +53,7 @@ const InventoryPage: React.FC = () => {
       search: search,
       sort_by: 'date_added',
       sort_order: 'desc',
-      status: 'available',
+      status: 'all',
       min_price: minPrice ? parseFloat(minPrice) : undefined,
       max_price: maxPrice ? parseFloat(maxPrice) : undefined
     };
@@ -169,7 +169,7 @@ const InventoryPage: React.FC = () => {
       search: '',
       sort_by: 'date_added',
       sort_order: 'desc',
-      status: 'available'
+      status: 'all'
     });
     setSearchInput('');
     setSearchParams({}, { replace: true });
@@ -450,6 +450,7 @@ const InventoryPage: React.FC = () => {
                       image={vehicle.images && vehicle.images.length > 0 ? vehicle.images[0] : ''}
                       condition={vehicle.condition ?? ''}
                       tags={vehicle.tags ?? []}
+                      status={vehicle.status}
                     />
                   ))}
                 </div>
