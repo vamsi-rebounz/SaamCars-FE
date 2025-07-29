@@ -131,6 +131,7 @@ const HomePage: React.FC = () => {
                   image={vehicle.images && vehicle.images[0]}
                   condition={vehicle.condition}
                   tags={vehicle.tags || []}
+                  status={vehicle.status}
                 />
               ))
             )}
