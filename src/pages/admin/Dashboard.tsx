@@ -72,21 +72,21 @@ const Dashboard: React.FC = () => {
   const keyMetrics = [
     {
       title: 'Total Revenue',
-      value: `$${dashboardData.summary.total_revenue.toLocaleString()}`,
+      value: `$${(dashboardData.summary.total_revenue || 0).toLocaleString()}`,
       icon: <DollarSign className="h-6 w-6" />,
       color: 'bg-gradient-to-r from-green-600 to-green-700',
-      subtitle: `$${dashboardData.summary.revenue_this_month.toLocaleString()} this month`
+      subtitle: `$${(dashboardData.summary.revenue_this_month || 0).toLocaleString()} this month`
     },
     {
       title: 'Total Profit',
-      value: `$${dashboardData.summary.total_profit.toLocaleString()}`,
-      icon: dashboardData.summary.total_profit >= 0 ? <TrendingUp className="h-6 w-6" /> : <TrendingDown className="h-6 w-6" />,
-      color: dashboardData.summary.profit_margin >= 0 ? 'bg-gradient-to-r from-emerald-600 to-emerald-700' : 'bg-gradient-to-r from-red-600 to-red-700',
-      subtitle: `${dashboardData.summary.profit_margin >= 0 ? '+' : ''}${dashboardData.summary.profit_margin}% ROI`
+      value: `$${(dashboardData.summary.total_profit || 0).toLocaleString()}`,
+      icon: (dashboardData.summary.total_profit || 0) >= 0 ? <TrendingUp className="h-6 w-6" /> : <TrendingDown className="h-6 w-6" />,
+      color: (dashboardData.summary.profit_margin || 0) >= 0 ? 'bg-gradient-to-r from-emerald-600 to-emerald-700' : 'bg-gradient-to-r from-red-600 to-red-700',
+      subtitle: `${(dashboardData.summary.profit_margin || 0) >= 0 ? '+' : ''}${dashboardData.summary.profit_margin || 0}% ROI`
     },
     {
       title: 'Inventory Value',
-      value: `$${dashboardData.summary.total_inventory_value.toLocaleString()}`,
+      value: `$${(dashboardData.summary.total_inventory_value || 0).toLocaleString()}`,
       icon: <Tag className="h-6 w-6" />,
       color: 'bg-gradient-to-r from-purple-600 to-purple-700',
       subtitle: 'Available vehicles'
@@ -104,7 +104,7 @@ const Dashboard: React.FC = () => {
   const profitBreakdown = [
     {
       title: 'Auction Profit',
-      value: `$${dashboardData.summary.auction_profit.toLocaleString()}`,
+      value: `$${(dashboardData.summary.auction_profit || 0).toLocaleString()}`,
       icon: <Award className="h-6 w-6" />,
       color: dashboardData.summary.auction_roi >= 0 ? 'text-green-600' : 'text-red-600',
       bgColor: dashboardData.summary.auction_roi >= 0 ? 'bg-green-100' : 'bg-red-100',
@@ -113,12 +113,12 @@ const Dashboard: React.FC = () => {
     },
     {
       title: 'Individual Profit',
-      value: `$${dashboardData.summary.individual_profit.toLocaleString()}`,
+      value: `$${(dashboardData.summary.individual_profit || 0).toLocaleString()}`,
       icon: <Users className="h-6 w-6" />,
-      color: dashboardData.summary.individual_roi >= 0 ? 'text-blue-600' : 'text-red-600',
-      bgColor: dashboardData.summary.individual_roi >= 0 ? 'bg-blue-100' : 'bg-red-100',
-      borderColor: dashboardData.summary.individual_roi >= 0 ? 'border-blue-200' : 'border-red-200',
-      subtitle: `${dashboardData.summary.individual_vehicles_sold} vehicles • ${dashboardData.summary.individual_roi >= 0 ? '+' : ''}${dashboardData.summary.individual_roi}% ROI`
+      color: (dashboardData.summary.individual_roi || 0) >= 0 ? 'text-blue-600' : 'text-red-600',
+      bgColor: (dashboardData.summary.individual_roi || 0) >= 0 ? 'bg-blue-100' : 'bg-red-100',
+      borderColor: (dashboardData.summary.individual_roi || 0) >= 0 ? 'border-blue-200' : 'border-red-200',
+      subtitle: `${dashboardData.summary.individual_vehicles_sold} vehicles • ${(dashboardData.summary.individual_roi || 0) >= 0 ? '+' : ''}${dashboardData.summary.individual_roi || 0}% ROI`
     }
   ];
 
@@ -174,7 +174,7 @@ const Dashboard: React.FC = () => {
                     <div className="mb-2">
                       <span className="text-2xl font-bold text-gray-900">{metric.value}</span>
                     </div>
-                    <p className={`text-xs ${metric.title === 'Total Profit' ? (dashboardData.summary.profit_margin >= 0 ? 'text-green-600' : 'text-red-600') : 'text-gray-500'}`}>
+                    <p className={`text-xs ${metric.title === 'Total Profit' ? ((dashboardData.summary.profit_margin || 0) >= 0 ? 'text-green-600' : 'text-red-600') : 'text-gray-500'}`}>
                       {metric.subtitle}
                     </p>
                   </div>
@@ -208,9 +208,9 @@ const Dashboard: React.FC = () => {
                   {metric.subtitle && (
                     <p className={`text-xs mt-1 ${
                       metric.title === 'Auction Profit' ? 
-                        (dashboardData.summary.auction_roi >= 0 ? 'text-green-600' : 'text-red-600') :
+                        ((dashboardData.summary.auction_roi || 0) >= 0 ? 'text-green-600' : 'text-red-600') :
                       metric.title === 'Individual Profit' ? 
-                        (dashboardData.summary.individual_roi >= 0 ? 'text-blue-600' : 'text-red-600') :
+                        ((dashboardData.summary.individual_roi || 0) >= 0 ? 'text-blue-600' : 'text-red-600') :
                       'text-gray-500'
                     }`}>
                       {metric.subtitle}

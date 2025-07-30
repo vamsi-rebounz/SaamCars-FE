@@ -558,7 +558,7 @@ const Inventory: React.FC = () => {
                           <div className="flex items-center">
                             <DollarSign className="h-4 w-4 text-green-600 mr-1" />
                             <span className="text-sm font-semibold text-gray-900">
-                              {vehicle.price.toLocaleString()}
+                              {vehicle.price ? vehicle.price.toLocaleString() : 'N/A'}
                             </span>
                           </div>
                         </td>

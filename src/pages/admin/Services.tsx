@@ -36,8 +36,8 @@ const Services: React.FC = () => {
     
     // Handle numeric values
     if (sortField === 'price') {
-      aValue = parseFloat(aValue.toString());
-      bValue = parseFloat(bValue.toString());
+      aValue = aValue ? parseFloat(aValue.toString()) || 0 : 0;
+      bValue = bValue ? parseFloat(bValue.toString()) || 0 : 0;
     }
     
     if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;

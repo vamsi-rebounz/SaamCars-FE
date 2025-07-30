@@ -116,7 +116,7 @@ const ManualPaymentModal = ({
       const paymentType = preloadedVehicle.status === 'sold' ? 'vehicle_purchase' : 'vehicle_hold';
       
       // Calculate amount based on payment type
-      const baseAmount = parseFloat(preloadedVehicle.price);
+      const baseAmount = preloadedVehicle.price ? parseFloat(preloadedVehicle.price) || 0 : 0;
       const amount = paymentType === 'vehicle_hold' ? (baseAmount * 0.05) : baseAmount; // 5% for hold
       
       // Set the selected vehicle with more complete data first
@@ -310,7 +310,7 @@ const ManualPaymentModal = ({
     try {
       // Prepare payment data
       const paymentData: any = {
-        amount: parseFloat(paymentForm.amount),
+        amount: paymentForm.amount ? parseFloat(paymentForm.amount) || 0 : 0,
         payment_method: paymentForm.payment_method,
         description: paymentForm.description,
         status: paymentForm.status,
@@ -856,7 +856,7 @@ const ManualPaymentModal = ({
                                     </div>
                                     <div className="text-right">
                                       <div className="text-lg font-bold text-gray-900">
-                                        ${vehicle.price.toLocaleString()}
+                                        ${vehicle.price ? vehicle.price.toLocaleString() : 'N/A'}
                                       </div>
                                       <div className="text-xs text-gray-500">
                                         {paymentForm.type === 'vehicle_purchase' ? 'Full Price' : '5% Hold'}
@@ -980,7 +980,7 @@ const ManualPaymentModal = ({
                           </div>
                           <div className="text-right">
                             <div className="text-2xl font-bold text-gray-900">
-                              ${selectedVehicle.price.toLocaleString()}
+                              ${selectedVehicle.price ? selectedVehicle.price.toLocaleString() : 'N/A'}
                             </div>
                             <div className="text-sm text-gray-600">
                               {paymentForm.type === 'vehicle_purchase' ? 'Full Purchase Price' : 'Hold Deposit (5%)'}

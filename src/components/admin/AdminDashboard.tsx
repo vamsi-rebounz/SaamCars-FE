@@ -190,7 +190,7 @@ const AdminDashboard: React.FC = () => {
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-gray-600 mb-2">Total Revenue</h3>
-          <p className="text-3xl font-bold text-purple-600">${Number(dashboardData.summary.total_revenue).toLocaleString()}</p>
+          <p className="text-3xl font-bold text-purple-600">${dashboardData.summary.total_revenue ? Number(dashboardData.summary.total_revenue).toLocaleString() : '0'}</p>
         </div>
       </div>
 

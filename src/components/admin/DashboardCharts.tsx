@@ -53,7 +53,10 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
     datasets: [
       {
         label: 'Sales Amount ($)',
-        data: salesChart.map(item => parseFloat(item.sales_amount)),
+        data: salesChart.map(item => {
+          const amount = parseFloat(item.sales_amount);
+          return isNaN(amount) ? 0 : amount;
+        }),
         borderColor: 'rgb(59, 130, 246)',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         borderWidth: 2,
@@ -167,7 +170,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
             const label = context.label || '';
             const value = context.parsed;
             const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
-            const percentage = ((value / total) * 100).toFixed(1);
+            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
             return `${label}: ${value} (${percentage}%)`;
           }
         }

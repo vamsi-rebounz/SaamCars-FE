@@ -318,14 +318,14 @@ const AuctionDetails: React.FC = () => {
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt className="text-sm font-medium text-gray-500">Purchase Price</dt>
-                  <dd className="text-sm font-semibold text-gray-900">${auction.purchase_price.toLocaleString()}</dd>
+                  <dd className="text-sm font-semibold text-gray-900">${auction.purchase_price ? auction.purchase_price.toLocaleString() : 'N/A'}</dd>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <div className="flex justify-between items-center py-2">
                   <dt className="text-sm font-medium text-gray-500">List Price</dt>
-                  <dd className="text-sm font-semibold text-gray-900">${auction.list_price.toLocaleString()}</dd>
+                  <dd className="text-sm font-semibold text-gray-900">${auction.list_price ? auction.list_price.toLocaleString() : 'N/A'}</dd>
                 </div>
                 {auction.sold_price && (
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <div className="flex justify-between items-center py-2">
                     <dt className="text-sm font-medium text-gray-500">Sold Price</dt>
                     <dd className="text-sm font-semibold text-green-600">${auction.sold_price.toLocaleString()}</dd>
                   </div>
@@ -391,7 +391,7 @@ const AuctionDetails: React.FC = () => {
                 {auction.mileage && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
                     <dt className="text-sm font-medium text-gray-500">Mileage</dt>
-                    <dd className="text-sm font-semibold text-gray-900">{auction.mileage.toLocaleString()} miles</dd>
+                    <dd className="text-sm font-semibold text-gray-900">{auction.mileage ? auction.mileage.toLocaleString() : 'N/A'} miles</dd>
                   </div>
                 )}
                 {auction.location && (
