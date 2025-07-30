@@ -132,10 +132,20 @@ const AllVehicles: React.FC = () => {
   const sortedVehicles = [...filteredVehicles].sort((a, b) => {
     let aValue: any = a[sortField as keyof typeof a];
     let bValue: any = b[sortField as keyof typeof b];
+    
+    // Handle date sorting
     if (sortField === 'created_at') {
       aValue = new Date(aValue).getTime();
       bValue = new Date(bValue).getTime();
     }
+    
+    // Handle financial fields - treat null/undefined as 0 for sorting
+    const financialFields = ['bought_price', 'repair_costs', 'sold_price', 'profit'];
+    if (financialFields.includes(sortField)) {
+      aValue = aValue || 0;
+      bValue = bValue || 0;
+    }
+    
     if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
     if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
     return 0;
@@ -626,52 +636,52 @@ const AllVehicles: React.FC = () => {
                 <div className="mt-2 flex flex-wrap gap-2">
                   {minPrice !== undefined && (
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      Min Price: ${minPrice.toLocaleString()}
+                      Min Price: ${minPrice ? minPrice.toLocaleString() : '0'}
                     </span>
                   )}
                   {maxPrice !== undefined && (
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      Max Price: ${maxPrice.toLocaleString()}
+                      Max Price: ${maxPrice ? maxPrice.toLocaleString() : '0'}
                     </span>
                   )}
                   {minPurchaseCost !== undefined && (
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                      Min Purchase: ${minPurchaseCost.toLocaleString()}
+                      Min Purchase: ${minPurchaseCost ? minPurchaseCost.toLocaleString() : '0'}
                     </span>
                   )}
                   {maxPurchaseCost !== undefined && (
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                      Max Purchase: ${maxPurchaseCost.toLocaleString()}
+                      Max Purchase: ${maxPurchaseCost ? maxPurchaseCost.toLocaleString() : '0'}
                     </span>
                   )}
                   {minAdditionalCosts !== undefined && (
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                      Min Costs: ${minAdditionalCosts.toLocaleString()}
+                      Min Costs: ${minAdditionalCosts ? minAdditionalCosts.toLocaleString() : '0'}
                     </span>
                   )}
                   {maxAdditionalCosts !== undefined && (
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                      Max Costs: ${maxAdditionalCosts.toLocaleString()}
+                      Max Costs: ${maxAdditionalCosts ? maxAdditionalCosts.toLocaleString() : '0'}
                     </span>
                   )}
                   {minSoldPrice !== undefined && (
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      Min Sold: ${minSoldPrice.toLocaleString()}
+                      Min Sold: ${minSoldPrice ? minSoldPrice.toLocaleString() : '0'}
                     </span>
                   )}
                   {maxSoldPrice !== undefined && (
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      Max Sold: ${maxSoldPrice.toLocaleString()}
+                      Max Sold: ${maxSoldPrice ? maxSoldPrice.toLocaleString() : '0'}
                     </span>
                   )}
                   {minProfit !== undefined && (
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                      Min Profit: ${minProfit.toLocaleString()}
+                      Min Profit: ${minProfit ? minProfit.toLocaleString() : '0'}
                     </span>
                   )}
                   {maxProfit !== undefined && (
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                      Max Profit: ${maxProfit.toLocaleString()}
+                      Max Profit: ${maxProfit ? maxProfit.toLocaleString() : '0'}
                     </span>
                   )}
                 </div>
@@ -908,7 +918,7 @@ const AllVehicles: React.FC = () => {
                               <div className="flex items-center">
                                 <DollarSign className="h-4 w-4 text-blue-600 mr-1" />
                                 <span className="text-sm font-semibold text-gray-900">
-                                  {vehicle.price.toLocaleString()}
+                                  {vehicle.price ? vehicle.price.toLocaleString() : 'N/A'}
                                 </span>
                               </div>
                             </td>

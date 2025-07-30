@@ -213,7 +213,7 @@ const VehicleDetails: React.FC = () => {
             <div className="col-span-1"></div>
             {/* Top right: Price, Sold Price */}
             <div className="col-span-1 flex flex-col items-end gap-2">
-              <div className="text-2xl font-bold text-blue-700">${vehicle.price.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-blue-700">${vehicle.price ? vehicle.price.toLocaleString() : 'N/A'}</div>
               {vehicle.sold_price && (
                 <div className="text-lg font-semibold text-green-700">Sold: ${vehicle.sold_price.toLocaleString()}</div>
               )}
@@ -380,7 +380,7 @@ const VehicleDetails: React.FC = () => {
               {vehicle.mileage && (
                 <div className="flex justify-between items-center py-2">
                   <dt className="text-sm font-medium text-gray-500">Mileage</dt>
-                  <dd className="text-sm font-semibold text-gray-900">{vehicle.mileage.toLocaleString()} miles</dd>
+                  <dd className="text-sm font-semibold text-gray-900">{vehicle.mileage ? vehicle.mileage.toLocaleString() : 'N/A'} miles</dd>
                 </div>
               )}
             </dl>

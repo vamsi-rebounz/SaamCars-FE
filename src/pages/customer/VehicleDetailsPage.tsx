@@ -147,7 +147,7 @@ const VehicleDetailsPage: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
                     <dt className="text-sm font-medium text-gray-500">Mileage</dt>
-                    <dd className="text-sm font-semibold text-gray-900">{vehicle?.mileage.toLocaleString()} miles</dd>
+                    <dd className="text-sm font-semibold text-gray-900">{vehicle?.mileage ? vehicle.mileage.toLocaleString() : 'N/A'} miles</dd>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
                     <dt className="text-sm font-medium text-gray-500">VIN</dt>
@@ -241,7 +241,7 @@ const VehicleDetailsPage: React.FC = () => {
             {vehicle && (
               <VehicleActions
                 vehicleId={id || ''}
-                price={parseFloat(vehicle.price)}
+                price={vehicle.price ? parseFloat(vehicle.price) || 0 : 0}
                 isAvailable={vehicle.available}
                 carfaxLink={vehicle.carfax_link}
                 isInWishlist={isInWishlist}
