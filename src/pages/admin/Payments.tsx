@@ -325,9 +325,9 @@ const Payments: React.FC = () => {
               <option value="" disabled>Payment status</option>
               <option value="all">All</option>
               <option value="completed">Completed</option>
-              <option value="refunded" disabled>Refunded</option>
-              <option value="pending" disabled>Pending</option>
-              <option value="failed" disabled>Failed</option>
+              <option value="refunded">Refunded</option>
+              <option value="pending">Pending</option>
+              <option value="failed">Failed</option>
             </select>
           </div>
           {/* Type Filter */}
@@ -337,12 +337,10 @@ const Payments: React.FC = () => {
               onChange={handleTypeFilterChange}
               className="block w-full pl-4 pr-8 py-2 text-sm border-b-[1.5px] border-blue-600 rounded-none bg-transparent focus:outline-none focus:ring-0 focus:border-blue-600 transition-colors"
             >
-              <option value="" disabled>Payment filter</option>
+              <option value="" disabled>Payment type</option>
               <option value="all">All</option>
               <option value="cash">Cash</option>
-              <option value="stripe" disabled>Stripe</option>
-              <option value="manual" disabled>Manual</option>
-              <option value="check" disabled>Check</option>
+              <option value="stripe">Stripe</option>
             </select>
           </div>
           {/* Items per page */}
@@ -475,14 +473,16 @@ const Payments: React.FC = () => {
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{payment.description}</div>
-                      <div className="text-sm text-gray-500 capitalize">{payment.type}</div>
+                      <div className="text-sm text-gray-500 capitalize">
+                        {payment.is_manual ? 'Cash' : 'Stripe'}
+                      </div>
                       <div className="flex items-center space-x-2 mt-2">
                         {payment.is_manual && (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
-                            Manual
+                            Cash
                           </span>
                         )}
-                        {payment.is_stripe && (
+                        {!payment.is_manual && (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
                             Stripe
                           </span>
@@ -833,7 +833,9 @@ const Payments: React.FC = () => {
                         </div>
                         <div className="flex justify-between items-center py-2 border-b border-gray-100">
                           <span className="text-sm font-medium text-gray-600">Payment Type</span>
-                          <span className="text-sm font-semibold text-gray-900 capitalize">{selectedPayment.type || 'N/A'}</span>
+                          <span className="text-sm font-semibold text-gray-900 capitalize">
+                            {selectedPayment.is_manual ? 'Cash' : 'Stripe'}
+                          </span>
                         </div>
                         <div className="flex justify-between items-center py-2 border-b border-gray-100">
                           <span className="text-sm font-medium text-gray-600">Transaction Date</span>
@@ -875,10 +877,10 @@ const Payments: React.FC = () => {
                           {selectedPayment.is_manual && (
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
                               <Wrench className="h-4 w-4 mr-1" />
-                              Manual Payment
+                              Cash Payment
                             </span>
                           )}
-                          {selectedPayment.is_stripe && (
+                          {!selectedPayment.is_manual && (
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
                               <CreditCard className="h-4 w-4 mr-1" />
                               Stripe Payment

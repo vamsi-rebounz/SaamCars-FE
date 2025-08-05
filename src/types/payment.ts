@@ -5,7 +5,7 @@ export interface Payment {
   email?: string;
   amount: number;
   description: string;
-  type: string;
+  type: 'purchase' | 'hold' | 'service' | 'manual' | string; // Updated to include new types
   date: string;
   status: string;
   payment_method?: string;
@@ -31,4 +31,20 @@ export interface Payment {
     email: string;
     phone?: string;
   };
-} 
+}
+
+// Payment type constants
+export const PAYMENT_TYPES = {
+  PURCHASE: 'purchase',
+  HOLD: 'hold',
+  SERVICE: 'service',
+  MANUAL: 'manual'
+} as const;
+
+// Payment status constants
+export const PAYMENT_STATUSES = {
+  PENDING: 'pending',
+  COMPLETED: 'completed',
+  FAILED: 'failed',
+  REFUNDED: 'refunded'
+} as const; 

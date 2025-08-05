@@ -6,6 +6,7 @@ import { CheckCircle } from 'lucide-react';
 const PaymentSuccess: React.FC = () => {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
+  const vehicleId = searchParams.get('vehicle_id');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,15 +23,26 @@ const PaymentSuccess: React.FC = () => {
         <h1 className="text-2xl font-semibold text-green-700 mb-2">Payment Successful</h1>
         <p className="text-gray-600 mb-4">
           Thank you! Your payment has been processed successfully.
+          {vehicleId && (
+            <span className="block mt-2 text-sm text-gray-500">
+              You can now view your vehicle details below.
+            </span>
+          )}
         </p>
         {/* {sessionId && (
           <p className="text-sm text-gray-500 mb-6">Session ID: {sessionId}</p>
         )} */}
         <button
-          onClick={() => navigate('/')}
+          onClick={() => {
+            if (vehicleId) {
+              navigate(`/inventory/${vehicleId}`);
+            } else {
+              navigate('/inventory');
+            }
+          }}
           className="bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700 transition"
         >
-          Close
+          View Vehicle
         </button>
       </div>
     </div>

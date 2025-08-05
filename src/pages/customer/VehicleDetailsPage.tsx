@@ -242,7 +242,7 @@ const VehicleDetailsPage: React.FC = () => {
               <VehicleActions
                 vehicleId={id || ''}
                 price={vehicle.price ? parseFloat(vehicle.price) || 0 : 0}
-                isAvailable={vehicle.available}
+                isAvailable={vehicle.status === 'available'}
                 carfaxLink={vehicle.carfax_link}
                 isInWishlist={isInWishlist}
               />
